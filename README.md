@@ -39,9 +39,9 @@ yangling/
 
 | 资产 | 来源 | 状态 |
 |---|---|---|
-| UI_AESTHETICS.md —— 13 个获奖作品风格范式速查表 + 7 大设计逻辑 | prize-ops/05-stage | 📋 待入库 |
-| UX_INTERACTION.md —— 大赛官网交互逻辑蒸馏（导航即信息架构） | prize-ops/05-stage | 📋 待入库 |
-| HERO_FLUID_MOTION.md —— 首页流体扭曲动效源码级拆解 | prize-ops/05-stage | 📋 待入库 |
+| UI_AESTHETICS.md —— 13 个获奖作品风格范式速查表 + 7 大设计逻辑 | prize-ops/05-stage | ✅ 已入库 |
+| UX_INTERACTION.md —— 大赛官网交互逻辑蒸馏（导航即信息架构） | prize-ops/05-stage | ✅ 已入库 |
+| HERO_FLUID_MOTION.md —— 首页流体扭曲动效源码级拆解 | prize-ops/05-stage | ✅ 已入库 |
 | visual-style-guide.md —— worldseed 专属视觉规范（新写） | 本项目 | 📋 待入库 |
 
 ---
