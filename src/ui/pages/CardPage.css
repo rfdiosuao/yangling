@@ -1,0 +1,121 @@
+/* ===== 今日养生时序卡 v2(炸版)===== */
+.card-page { max-width: 680px; margin: 0 auto; }
+.card-page.is-family { max-width: 760px; }
+.card-page.is-family .timeline-card { background: var(--yl-card-solid); }
+.card-page.is-family .card-body { font-size: 17px; line-height: 1.7; }
+.card-page.is-family .timeline-card h3 { font-size: 20px; }
+
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.family-toggle { white-space: nowrap; }
+
+.risk-banner {
+  background: rgba(208, 82, 63, 0.14);
+  border: 1px solid var(--yl-accent);
+  color: var(--yl-season-bright);
+  padding: 14px 16px;
+  border-radius: var(--yl-radius-md);
+  font-size: 14px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.card-demo-note { text-align: center; font-size: 12px; margin-top: 16px; }
+.card-toast {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--yl-season-bright);
+  background: var(--yl-season-soft);
+  border: 1px solid var(--yl-border-strong);
+  border-radius: var(--yl-radius-sm);
+  padding: 8px 12px;
+  animation: fade-in 0.3s var(--yl-ease);
+}
+
+.family-banner {
+  background: var(--yl-season-soft);
+  border: 1px solid var(--yl-season);
+  color: var(--yl-season-strong);
+  padding: 12px 16px;
+  border-radius: var(--yl-radius-md);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.card-timeline { display: flex; flex-direction: column; gap: 22px; }
+
+.timeline-item { display: flex; gap: 16px; position: relative; }
+.timeline-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 21px;
+  top: 48px;
+  bottom: -22px;
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--yl-season) 0%, var(--yl-season-soft) 100%);
+}
+.timeline-dot {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--yl-night-3);
+  border: 2px solid var(--yl-season);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  z-index: 1;
+  box-shadow: var(--yl-glow-season);
+  transition: transform var(--yl-dur-med) var(--yl-ease-out);
+}
+.timeline-item:hover .timeline-dot { transform: scale(1.1) rotate(6deg); }
+.timeline-item.is-done .timeline-dot { background: var(--yl-season); border-color: var(--yl-season); animation: pop-in 0.4s var(--yl-ease-out); }
+
+.timeline-card {
+  flex: 1;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  animation: fade-up 0.5s var(--yl-ease-out) both;
+}
+.timeline-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--yl-grad-season);
+  opacity: 0.6;
+}
+.timeline-item.is-done .timeline-card { opacity: 0.9; border-color: rgba(201, 152, 45, 0.4); }
+
+.timeline-tag { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.tag-type {
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--yl-season-soft);
+  color: var(--yl-season-strong);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.tag-time { font-size: 12px; color: var(--yl-ink-faint); }
+.timeline-card h3 { font-size: 20px; margin-bottom: 12px; }
+.card-body { font-size: 15px; line-height: 1.8; margin-bottom: 6px; }
+.card-reason {
+  font-size: 13px;
+  margin-top: 10px;
+  font-style: italic;
+  color: var(--yl-season-strong);
+  border-left: 3px solid var(--yl-season);
+  padding-left: 10px;
+}
+.card-actions { margin-top: 14px; }
+.card-done { font-size: 13px; padding: 8px 18px; }
+
+.card-summary { margin-top: 32px; text-align: center; padding: 28px; }
+.card-summary .font-serif { font-size: 21px; line-height: 1.5; }
+.card-tip { font-size: 14px; margin-top: 10px; }
+.card-summary-actions { display: flex; gap: 14px; justify-content: center; margin-top: 20px; }
+.card-summary-actions .yl-btn { text-decoration: none; }
+.card-disclaimer { text-align: center; font-size: 12px; margin-top: 28px; }

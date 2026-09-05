@@ -1,0 +1,170 @@
+/* ===== 养令 YangLing · 设计 Tokens v3(炸版·墨夜金线)=====
+ * 参照秒哒美学蒸馏(02-assets/UI_AESTHETICS.md):
+ * 暗色冲击系(混世魔牛/遗憾星云/申光纪)→ 墨夜夜空底 + 秋金光线
+ * 东方元素保留:印章红、竖排字、时辰罗盘
+ */
+
+:root {
+  /* 色板:墨夜夜空 + 秋金光线 + 印章红点缀 */
+  --yl-night: #100e0a;          /* 墨夜底 */
+  --yl-night-2: #171410;        /* 次级夜空 */
+  --yl-night-3: #1e1a14;        /* 卡片底(玻璃) */
+  --yl-paper: #f5f0e6;          /* 宣纸白(文字) */
+  --yl-paper-deep: #e8e0cf;     /* 宣纸深(次级) */
+  --yl-ink: #f5f0e6;            /* 主文字(暗底上反白) */
+  --yl-ink-soft: #b8b0a0;       /* 次级文字 */
+  --yl-ink-faint: #7d7668;      /* 弱化文字 */
+  --yl-season: #e0b45a;         /* 秋金(主色) */
+  --yl-season-bright: #f5d78a;  /* 秋金亮 */
+  --yl-season-soft: rgba(224, 180, 90, 0.14);
+  --yl-season-glow: rgba(224, 180, 90, 0.4);
+  --yl-accent: #d0523f;         /* 印章红 */
+  --yl-accent-soft: rgba(208, 82, 63, 0.18);
+  --yl-card: rgba(255, 250, 240, 0.055);   /* 玻璃卡片 */
+  --yl-card-solid: #1e1a14;
+  --yl-border: rgba(224, 180, 90, 0.16);   /* 金线 */
+  --yl-border-strong: rgba(224, 180, 90, 0.35);
+
+  /* 渐变 */
+  --yl-grad-bg: radial-gradient(120% 90% at 50% 0%, #1a1610 0%, #100e0a 55%, #0c0a08 100%);
+  --yl-grad-season: linear-gradient(135deg, #e0b45a 0%, #f5d78a 55%, #ffe9b8 100%);
+  --yl-grad-ink: linear-gradient(135deg, #f5f0e6 0%, #d8c9a8 100%);
+
+  /* 字体 */
+  --yl-font-serif: 'Noto Serif SC', 'Songti SC', serif;
+  --yl-font-sans: 'Noto Sans SC', 'PingFang SC', sans-serif;
+
+  /* 间距 */
+  --yl-space-1: 4px; --yl-space-2: 8px; --yl-space-3: 16px;
+  --yl-space-4: 24px; --yl-space-5: 40px; --yl-space-6: 64px;
+
+  /* 圆角 */
+  --yl-radius-sm: 10px; --yl-radius-md: 18px; --yl-radius-lg: 30px;
+
+  /* 阴影 */
+  --yl-shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --yl-shadow-md: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --yl-shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.6);
+  --yl-glow-season: 0 0 40px rgba(224, 180, 90, 0.25);
+  --yl-glow-strong: 0 0 60px rgba(224, 180, 90, 0.45);
+
+  /* 动效 */
+  --yl-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --yl-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --yl-dur-fast: 0.18s; --yl-dur-med: 0.35s; --yl-dur-slow: 0.7s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+html, body, #root { min-height: 100%; }
+
+body {
+  font-family: var(--yl-font-sans);
+  background: var(--yl-grad-bg);
+  color: var(--yl-ink);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection { background: var(--yl-season); color: #1a1400; }
+
+h1, h2, h3, .font-serif { font-family: var(--yl-font-serif); }
+
+/* 按钮:金色流光 + 发光 */
+.yl-btn {
+  position: relative;
+  font-family: var(--yl-font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px 30px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform var(--yl-dur-fast) var(--yl-ease-out), box-shadow var(--yl-dur-fast), filter var(--yl-dur-fast);
+  background: var(--yl-season-soft);
+  color: var(--yl-season-bright);
+  border: 1px solid var(--yl-border-strong);
+  overflow: hidden;
+  letter-spacing: 0.04em;
+}
+.yl-btn::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%;
+  width: 40%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.5s var(--yl-ease);
+}
+.yl-btn:hover::after { left: 130%; }
+.yl-btn:hover { transform: translateY(-2px) scale(1.03); box-shadow: var(--yl-glow-season); }
+.yl-btn:active { transform: translateY(0) scale(0.97); }
+.yl-btn--season {
+  background: var(--yl-grad-season);
+  color: #2a1e00;
+  border: none;
+  font-weight: 800;
+  box-shadow: var(--yl-glow-season);
+}
+.yl-btn--season:hover { box-shadow: var(--yl-glow-strong); filter: brightness(1.08); }
+.yl-btn--ghost { background: transparent; color: var(--yl-ink-soft); border: 1px solid var(--yl-border); }
+.yl-btn--ghost:hover { border-color: var(--yl-border-strong); color: var(--yl-season-bright); background: var(--yl-season-soft); }
+
+/* 卡片:暗色玻璃 + 金线 + hover 发光 */
+.yl-card {
+  background: var(--yl-card);
+  border: 1px solid var(--yl-border);
+  border-radius: var(--yl-radius-lg);
+  box-shadow: var(--yl-shadow-sm);
+  padding: var(--yl-space-4);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  transition: transform var(--yl-dur-med) var(--yl-ease-out), border-color var(--yl-dur-med), box-shadow var(--yl-dur-med);
+}
+.yl-card:hover { transform: translateY(-3px); border-color: var(--yl-border-strong); box-shadow: var(--yl-glow-season), var(--yl-shadow-md); }
+
+.yl-muted { color: var(--yl-ink-soft); }
+.yl-faint { color: var(--yl-ink-faint); }
+
+/* 页标题:宣纸白渐变 + 金线 */
+.page-title {
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 10px;
+  background: var(--yl-grad-ink);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 20px rgba(224, 180, 90, 0.15));
+}
+.page-title::after {
+  content: '';
+  display: block;
+  width: 60px; height: 3px;
+  border-radius: 2px;
+  background: var(--yl-grad-season);
+  box-shadow: var(--yl-glow-season);
+  margin-top: 12px;
+}
+.page-subtitle { font-size: 16px; margin-bottom: 32px; line-height: 1.6; color: var(--yl-ink-soft); }
+
+/* 竖排装饰字 */
+.v-text {
+  writing-mode: vertical-rl;
+  font-family: var(--yl-font-serif);
+  letter-spacing: 0.4em;
+  color: var(--yl-season);
+  opacity: 0.5;
+  font-size: 14px;
+  user-select: none;
+}
+
+/* 动效 keyframes */
+@keyframes fade-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop-in { 0% { opacity: 0; transform: scale(0.85); } 70% { transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(224, 180, 90, 0.2); } 50% { box-shadow: 0 0 45px rgba(224, 180, 90, 0.5); } }
+@keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }

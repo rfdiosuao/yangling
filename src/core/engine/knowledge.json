@@ -1,0 +1,395 @@
+{
+  "schemaVersion": "1.0",
+  "meta": {
+    "name": "养令知识库 v0.1(骨架)",
+    "updatedAt": "2026-09-05"
+  },
+  "solarTerms": [
+    {
+      "id": "bailu",
+      "name": "白露",
+      "index": 15,
+      "month": 9,
+      "keyTraits": [
+        "昼夜温差大",
+        "秋燥渐显",
+        "宜滋阴润肺"
+      ],
+      "season": "秋"
+    },
+    {
+      "id": "qiufen",
+      "name": "秋分",
+      "index": 16,
+      "month": 9,
+      "keyTraits": [
+        "昼夜等长",
+        "秋意渐浓",
+        "宜收敛养阴"
+      ],
+      "season": "秋"
+    }
+  ],
+  "constitutions": [
+    {
+      "id": "pinghe",
+      "name": "平和质",
+      "keyTraits": [
+        "精力充沛",
+        "耐受寒热",
+        "睡眠良好"
+      ],
+      "avoid": []
+    },
+    {
+      "id": "yinxu",
+      "name": "阴虚质",
+      "keyTraits": [
+        "口燥咽干",
+        "手足心热",
+        "喜冷饮"
+      ],
+      "avoid": [
+        "辛辣",
+        "熬夜",
+        "剧烈运动"
+      ]
+    },
+    {
+      "id": "yangxu",
+      "name": "阳虚质",
+      "keyTraits": [
+        "怕冷",
+        "手足不温",
+        "喜热饮"
+      ],
+      "avoid": [
+        "生冷",
+        "寒凉",
+        "久坐"
+      ]
+    }
+  ],
+  "hours": [
+    {
+      "id": "maoshi",
+      "name": "卯时",
+      "index": 5,
+      "timeRange": "05:00-07:00",
+      "organ": "大肠经"
+    },
+    {
+      "id": "chenshi",
+      "name": "辰时",
+      "index": 7,
+      "timeRange": "07:00-09:00",
+      "organ": "胃经"
+    },
+    {
+      "id": "wushi",
+      "name": "午时",
+      "index": 11,
+      "timeRange": "11:00-13:00",
+      "organ": "心经"
+    },
+    {
+      "id": "xushi",
+      "name": "戌时",
+      "index": 19,
+      "timeRange": "19:00-21:00",
+      "organ": "心包经"
+    },
+    {
+      "id": "haishi",
+      "name": "亥时",
+      "index": 21,
+      "timeRange": "21:00-23:00",
+      "organ": "三焦经"
+    }
+  ],
+  "states": [
+    {
+      "id": "aoye-shanghuo",
+      "name": "熬夜上火",
+      "keywords": [
+        "熬夜",
+        "嘴苦",
+        "口苦",
+        "没精神",
+        "上火",
+        "睡眠不足"
+      ],
+      "severity": [
+        "mild",
+        "moderate"
+      ]
+    },
+    {
+      "id": "shoujiao-bingliang",
+      "name": "手脚冰凉",
+      "keywords": [
+        "手脚冰凉",
+        "怕冷",
+        "畏寒",
+        "手脚冷"
+      ],
+      "severity": [
+        "mild",
+        "moderate"
+      ]
+    },
+    {
+      "id": "jiuzuo-jianjing",
+      "name": "久坐肩颈",
+      "keywords": [
+        "久坐",
+        "肩颈",
+        "肩膀酸",
+        "脖子疼",
+        "颈椎"
+      ],
+      "severity": [
+        "mild",
+        "moderate"
+      ]
+    },
+    {
+      "id": "shimian-qian",
+      "name": "失眠浅睡",
+      "keywords": [
+        "失眠",
+        "睡不着",
+        "睡眠浅",
+        "多梦",
+        "早醒"
+      ],
+      "severity": [
+        "mild",
+        "moderate"
+      ]
+    }
+  ],
+  "interventions": {
+    "aoye-shanghuo": {
+      "yinxu": {
+        "*": {
+          "cards": [
+            {
+              "type": "cup",
+              "title": "一杯 · 百合莲子饮",
+              "ingredients": [
+                "百合 10g",
+                "莲子 10g",
+                "冰糖少许"
+              ],
+              "method": "沸水冲泡 10 分钟,温饮",
+              "reason": "滋阴润肺,清心除烦",
+              "animation": null,
+              "id": "aoye-shanghuo-yinxu-一杯-百合莲子饮-1"
+            },
+            {
+              "type": "move",
+              "title": "一动 · 按揉内关穴",
+              "acupoint": "内关穴",
+              "location": "腕横纹上 2 寸,两筋之间",
+              "method": "拇指按揉 1 分钟,左右交替",
+              "reason": "宁心安神,和胃降逆",
+              "animation": "acupoint-neiguan",
+              "id": "aoye-shanghuo-yinxu-一动-按揉内关穴-2"
+            },
+            {
+              "type": "breath",
+              "title": "一息 · 4-7-8 呼吸法",
+              "steps": [
+                "吸气 4 秒",
+                "屏息 7 秒",
+                "呼气 8 秒"
+              ],
+              "repeat": 4,
+              "reason": "激活副交感神经,助眠安神",
+              "animation": "breath-478",
+              "id": "aoye-shanghuo-yinxu-一息-4-7-8-呼吸法-3"
+            }
+          ],
+          "summary": {
+            "headline": "今日宜滋阴润燥,忌熬夜辛辣",
+            "oneLine": "百合莲子饮 + 按揉内关穴 + 4-7-8 呼吸",
+            "constitutionTip": "你属阴虚质,今天重点在'滋阴'而非'清热'"
+          }
+        }
+      },
+      "yangxu": {
+        "*": {
+          "cards": [
+            {
+              "type": "cup",
+              "title": "一杯 · 桂圆红枣茶",
+              "ingredients": [
+                "桂圆 5 颗",
+                "红枣 3 枚",
+                "枸杞少许"
+              ],
+              "method": "沸水焖泡 10 分钟,温饮",
+              "reason": "温补气血,安神助眠",
+              "animation": null,
+              "id": "aoye-shanghuo-yangxu-一杯-桂圆红枣茶-1"
+            },
+            {
+              "type": "move",
+              "title": "一动 · 搓揉足三里",
+              "acupoint": "足三里",
+              "location": "犊鼻下 3 寸,胫骨外一横指",
+              "method": "拇指按揉 2 分钟,左右交替",
+              "reason": "健脾胃,补气血",
+              "animation": "acupoint-zusanli",
+              "id": "aoye-shanghuo-yangxu-一动-搓揉足三里-2"
+            },
+            {
+              "type": "breath",
+              "title": "一息 · 腹式呼吸",
+              "steps": [
+                "吸气 4 秒",
+                "呼气 6 秒"
+              ],
+              "repeat": 5,
+              "reason": "放松身心,助阳气潜藏",
+              "animation": "breath-belly",
+              "id": "aoye-shanghuo-yangxu-一息-腹式呼吸-3"
+            }
+          ],
+          "summary": {
+            "headline": "今日宜温补气血,忌生冷寒凉",
+            "oneLine": "桂圆红枣茶 + 搓揉足三里 + 腹式呼吸",
+            "constitutionTip": "你属阳虚质,今天重点在'温阳'而非'清热'"
+          }
+        }
+      }
+    },
+    "shoujiao-bingliang": {
+      "yangxu": {
+        "*": {
+          "cards": [
+            {
+              "type": "cup",
+              "title": "一杯 · 生姜红糖水",
+              "ingredients": [
+                "生姜 3 片",
+                "红糖 1 勺"
+              ],
+              "method": "沸水冲泡,趁热饮用",
+              "reason": "温中散寒,活血通络",
+              "animation": null,
+              "id": "shoujiao-bingliang-yangxu-一杯-生姜红糖水-1"
+            },
+            {
+              "type": "move",
+              "title": "一动 · 搓揉涌泉穴",
+              "acupoint": "涌泉穴",
+              "location": "足底前 1/3 凹陷处",
+              "method": "睡前搓揉 2 分钟,双脚交替",
+              "reason": "引火归元,温养肾阳",
+              "animation": "acupoint-yongquan",
+              "id": "shoujiao-bingliang-yangxu-一动-搓揉涌泉穴-2"
+            },
+            {
+              "type": "breath",
+              "title": "一息 · 温阳呼吸",
+              "steps": [
+                "深吸 4 秒",
+                "屏息 2 秒",
+                "缓呼 6 秒"
+              ],
+              "repeat": 5,
+              "reason": "温养阳气,改善末梢循环",
+              "animation": "breath-warm",
+              "id": "shoujiao-bingliang-yangxu-一息-温阳呼吸-3"
+            }
+          ],
+          "summary": {
+            "headline": "今日宜温阳散寒,忌生冷",
+            "oneLine": "生姜红糖水 + 搓揉涌泉 + 温阳呼吸",
+            "constitutionTip": "你属阳虚质,手脚冰凉重在'温通'"
+          }
+        }
+      }
+    },
+    "jiuzuo-jianjing": {
+      "*": {
+        "*": {
+          "cards": [
+            {
+              "type": "move",
+              "title": "一动 · 肩颈拉伸",
+              "acupoint": "肩井穴",
+              "location": "大椎与肩峰连线中点",
+              "method": "耸肩 10 次 + 转颈 5 次,缓慢",
+              "reason": "放松肩颈,缓解僵硬",
+              "animation": "move-shoulder",
+              "id": "jiuzuo-jianjing-*-一动-肩颈拉伸-1"
+            },
+            {
+              "type": "move",
+              "title": "二动 · 按揉风池穴",
+              "acupoint": "风池穴",
+              "location": "后发际凹陷处,枕骨下",
+              "method": "拇指按揉 1 分钟",
+              "reason": "疏风通络,缓解头痛",
+              "animation": "acupoint-fengchi",
+              "id": "jiuzuo-jianjing-*-二动-按揉风池穴-2"
+            },
+            {
+              "type": "breath",
+              "title": "一息 · 工间呼吸",
+              "steps": [
+                "起身站立",
+                "深吸 4 秒",
+                "举手呼气 6 秒"
+              ],
+              "repeat": 3,
+              "reason": "缓解久坐疲劳",
+              "animation": "breath-break",
+              "id": "jiuzuo-jianjing-*-一息-工间呼吸-3"
+            }
+          ],
+          "summary": {
+            "headline": "今日宜每小时起身一次",
+            "oneLine": "肩颈拉伸 + 按揉风池 + 工间呼吸",
+            "constitutionTip": "久坐伤气,每小时微动 2 分钟"
+          }
+        }
+      }
+    }
+  },
+  "fallback": {
+    "cards": [
+      {
+        "type": "cup",
+        "title": "一杯 · 温开水",
+        "ingredients": [
+          "温水 300ml"
+        ],
+        "method": "小口慢饮",
+        "reason": "基础补水,促进代谢",
+        "animation": null,
+        "id": "fallback-一杯-温开水-1"
+      },
+      {
+        "type": "breath",
+        "title": "一息 · 腹式呼吸",
+        "steps": [
+          "吸气 4 秒",
+          "呼气 6 秒"
+        ],
+        "repeat": 5,
+        "reason": "放松身心,回归当下",
+        "animation": "breath-belly",
+        "id": "fallback-一息-腹式呼吸-2"
+      }
+    ],
+    "summary": {
+      "headline": "今日宜规律作息,顺时而养",
+      "oneLine": "多喝水 + 深呼吸 + 早点休息",
+      "constitutionTip": "养生贵在坚持,每天 3 分钟"
+    }
+  }
+}

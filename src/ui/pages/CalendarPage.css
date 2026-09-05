@@ -1,0 +1,47 @@
+/* ===== 养生日历(M5)===== */
+.calendar { max-width: 640px; margin: 0 auto; }
+.calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  padding: 20px;
+}
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 4px;
+  border-radius: var(--yl-radius-md);
+  background: var(--yl-night-3);
+  border: 1px solid var(--yl-border);
+}
+.cal-day.is-done { background: var(--yl-season-soft); border-color: var(--yl-season); }
+.cal-day.is-today { box-shadow: 0 0 0 2px var(--yl-season); }
+.cal-weekday { font-size: 11px; color: var(--yl-ink-faint); }
+.cal-num { font-size: 22px; font-weight: 700; }
+.cal-mark { font-size: 14px; color: var(--yl-season); min-height: 18px; }
+
+.calendar-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 24px 0; }
+.stat-card { text-align: center; padding: 20px; }
+.stat-value { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+.stat-label { font-size: 13px; }
+
+.calendar-history { margin-top: 8px; }
+.calendar-history h2 { font-size: 20px; margin-bottom: 6px; }
+.trend-placeholder { padding: 16px; margin-top: 12px; }
+.trend-bars { display: flex; align-items: flex-end; gap: 8px; height: 120px; }
+.trend-bar {
+  flex: 1;
+  background: var(--yl-night-3);
+  border: 1px solid var(--yl-border);
+  opacity: 0.6;
+  border-radius: 4px 4px 0 0;
+  min-height: 8px;
+  transition: height var(--yl-dur-med) var(--yl-ease);
+}
+.trend-bar.is-done {
+  background: var(--yl-season);
+  border-color: var(--yl-season);
+  opacity: 0.85;
+}

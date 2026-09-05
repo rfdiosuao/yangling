@@ -1,0 +1,85 @@
+/* ===== 说状态(M1)===== */
+.chat { max-width: 640px; margin: 0 auto; }
+.chat-head { display: flex; align-items: center; gap: 12px; }
+.chat-head .page-title { margin: 0; }
+.mode-badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--yl-season-soft);
+  color: var(--yl-season-bright);
+  border: 1px solid var(--yl-border-strong);
+  white-space: nowrap;
+}
+.chat-box { display: flex; flex-direction: column; min-height: 380px; }
+
+.chat-messages {
+  flex: 1;
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.chat-msg {
+  max-width: 80%;
+  padding: 12px 16px;
+  border-radius: var(--yl-radius-md);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.chat-msg--bot {
+  align-self: flex-start;
+  background: var(--yl-card-solid);
+  border: 1px solid var(--yl-border);
+  border-top-left-radius: 4px;
+}
+.chat-msg--user {
+  align-self: flex-end;
+  background: var(--yl-grad-season);
+  color: #2a1e00;
+  border-top-right-radius: 4px;
+}
+.chat-msg--thinking { font-style: italic; color: var(--yl-ink-faint); }
+.chat-msg.is-risk {
+  background: rgba(208, 82, 63, 0.14);
+  border-color: var(--yl-accent);
+  color: var(--yl-season-bright);
+}
+.chat-msg.is-needinfo {
+  background: var(--yl-season-soft);
+  border-color: var(--yl-border-strong);
+  color: var(--yl-ink-soft);
+}
+
+.chat-input { display: flex; gap: 10px; margin-top: 14px; }
+.chat-input input {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-family: var(--yl-font-sans);
+  border: 1px solid var(--yl-border);
+  border-radius: var(--yl-radius-md);
+  background: var(--yl-night-2);
+  color: var(--yl-ink);
+  outline: none;
+  transition: border-color var(--yl-dur-fast);
+}
+.chat-input input:focus { border-color: var(--yl-season); }
+.chat-input input:disabled { opacity: 0.6; }
+
+.chat-demos { margin-top: 24px; }
+.chat-demo-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chat-demo-chip {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-family: var(--yl-font-sans);
+  background: var(--yl-card);
+  border: 1px solid var(--yl-border);
+  border-radius: 999px;
+  cursor: pointer;
+  color: var(--yl-ink-soft);
+  transition: border-color var(--yl-dur-fast), color var(--yl-dur-fast);
+}
+.chat-demo-chip:hover { border-color: var(--yl-season); color: var(--yl-season); }
