@@ -76,7 +76,7 @@ export function inferFromUserState(userState) {
     solarTermId: 'bailu',
     constitutionId: hasCold ? 'yangxu' : hasHeat ? 'yinxu' : 'pinghe',
     matchedState: hasCold ? 'shoujiao-bingliang' : hasHeat ? 'aoye-shanghuo' : null,
-    hour: 'chenshi',
+    hour: '辰时',
   }
 }
 

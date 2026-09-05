@@ -84,7 +84,7 @@ function buildExtraction(rawText, demo) {
       solarTermId: 'bailu',
       constitutionId: demo.constitutionId,
       matchedState: demo.id,
-      hour: 'chenshi',
+      hour: '辰时',
       tags: ['熬夜', '上火', '阴虚'],
     }
   } else if (demo?.id === 'shoujiao-bingliang') {
@@ -99,7 +99,7 @@ function buildExtraction(rawText, demo) {
       solarTermId: 'bailu',
       constitutionId: demo.constitutionId,
       matchedState: demo.id,
-      hour: 'xushi',
+      hour: '戌时',
       tags: ['怕冷', '阳虚'],
     }
   } else if (demo?.id === 'jiuzuo-jianjing') {
@@ -114,7 +114,7 @@ function buildExtraction(rawText, demo) {
       solarTermId: 'bailu',
       constitutionId: demo.constitutionId,
       matchedState: demo.id,
-      hour: 'chenshi',
+      hour: '辰时',
       tags: ['久坐', '肩颈'],
     }
   } else if (demo?.id === 'shimian-qian') {
@@ -129,7 +129,7 @@ function buildExtraction(rawText, demo) {
       solarTermId: 'bailu',
       constitutionId: demo.constitutionId,
       matchedState: demo.id,
-      hour: 'haishi',
+      hour: '亥时',
       tags: ['失眠', '浅睡'],
     }
   }

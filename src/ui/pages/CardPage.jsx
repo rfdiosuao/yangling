@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addPlan, checkIn, loadProfile } from '../../core/profile/store.js'
+import PoseGuide from '../motion/PoseGuide.jsx'
 import './CardPage.css'
 
 const TYPE_META = {
@@ -100,6 +101,9 @@ export default function CardPage() {
                   <p className="card-body">
                     <strong>{card.acupoint}</strong> · {card.location}
                   </p>
+                )}
+                {card.type === 'move' && (
+                  <PoseGuide action={card} onComplete={() => toggleCard(card.id)} compact />
                 )}
                 {card.steps && (
                   <p className="card-body">

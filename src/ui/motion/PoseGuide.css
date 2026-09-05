@@ -1,0 +1,102 @@
+/* ===== PoseGuide 动作跟随 ===== */
+.pose-guide {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--yl-border);
+}
+.pose-expand { font-size: 13px; padding: 8px 16px; }
+
+.pose-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.pose-title { font-size: 16px; margin-bottom: 2px; }
+.pose-target { font-size: 12px; }
+.pose-badge {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--yl-season-soft);
+  color: var(--yl-season-bright);
+  border: 1px solid var(--yl-border);
+  white-space: nowrap;
+}
+
+.pose-stage { margin-bottom: 12px; }
+
+/* 动画指引占位 */
+.pose-animation { text-align: center; padding: 16px; background: var(--yl-night-2); border-radius: var(--yl-radius-md); }
+.pose-demo-figure {
+  position: relative;
+  width: 90px; height: 90px;
+  margin: 0 auto 12px;
+}
+.pose-demo-circle {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: 2px solid var(--yl-season);
+  position: absolute; top: 4px; left: 22px;
+  animation: pose-breathe 3s ease-in-out infinite;
+}
+.pose-demo-arm {
+  width: 34px; height: 34px;
+  border: 2px solid var(--yl-season);
+  border-left: none;
+  position: absolute; bottom: 8px; left: 40px;
+  border-radius: 0 50% 50% 0;
+  transform-origin: left center;
+  animation: pose-swing 2s ease-in-out infinite;
+}
+@keyframes pose-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+@keyframes pose-swing {
+  0%, 100% { transform: rotate(-15deg); }
+  50% { transform: rotate(15deg); }
+}
+.pose-demo-hint { font-size: 13px; color: var(--yl-ink-soft); margin-bottom: 12px; }
+
+.pose-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.pose-actions .yl-btn { font-size: 13px; padding: 9px 18px; }
+.pose-error { width: 100%; font-size: 12px; }
+
+/* 摄像头预览 */
+.pose-camera { position: relative; border-radius: var(--yl-radius-md); overflow: hidden; background: #000; }
+.pose-video {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  transform: scaleX(-1); /* 镜像,让用户看着自然 */
+}
+.pose-overlay {
+  position: absolute;
+  bottom: 8px; left: 8px; right: 8px;
+  display: flex; justify-content: space-between; align-items: center;
+  background: rgba(16, 14, 10, 0.7);
+  padding: 8px 12px;
+  border-radius: var(--yl-radius-sm);
+  font-size: 13px;
+  color: var(--yl-season-bright);
+}
+.pose-angle { font-family: var(--yl-font-mono, monospace); font-size: 16px; font-weight: 700; }
+.pose-camera-actions { display: flex; gap: 8px; padding: 8px; background: var(--yl-night-2); }
+.pose-camera-actions .yl-btn { font-size: 12px; padding: 7px 14px; }
+
+/* 分步 */
+.pose-steps { list-style: none; counter-reset: pose; display: flex; flex-direction: column; gap: 6px; }
+.pose-step {
+  counter-increment: pose;
+  font-size: 13px;
+  color: var(--yl-ink-soft);
+  padding-left: 26px;
+  position: relative;
+}
+.pose-step::before {
+  content: counter(pose);
+  position: absolute; left: 0; top: 0;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--yl-season-soft);
+  color: var(--yl-season-bright);
+  font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pose-note { margin-top: 12px; font-size: 11px; text-align: center; }
