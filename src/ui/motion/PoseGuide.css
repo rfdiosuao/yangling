@@ -66,6 +66,14 @@
   object-fit: cover;
   transform: scaleX(-1); /* 镜像,让用户看着自然 */
 }
+.pose-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1); /* 与视频同镜像,关键点对齐 */
+  pointer-events: none;
+}
 .pose-overlay {
   position: absolute;
   bottom: 8px; left: 8px; right: 8px;
