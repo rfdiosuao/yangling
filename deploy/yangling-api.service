@@ -1,0 +1,21 @@
+[Unit]
+Description=YangLing API
+After=network.target
+
+[Service]
+Type=simple
+User=yangling
+Group=yangling
+WorkingDirectory=/opt/yangling/current
+EnvironmentFile=/etc/yangling/api.env
+ExecStart=/usr/bin/node server/index.mjs
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/yangling
+
+[Install]
+WantedBy=multi-user.target

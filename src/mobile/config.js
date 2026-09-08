@@ -42,15 +42,17 @@ export const DEFAULT_CONFIG = {
   },
   dialect: 'mandarin',
   knowledge: [
-    { id: 'white-dew', title: '白露时节嗓子干', keywords: '白露,嗓子,干,秋燥', answer: '多喝温水，减少长时间讲话；饮食可选择梨、百合、银耳等普通食材，并根据天气及时添衣。', source: '白露节气起居建议' },
-    { id: 'overnight-tea', title: '隔夜茶能喝吗', keywords: '隔夜茶,茶水,浓茶', answer: '有异味、变色或长时间在室温放置的茶水建议倒掉。平时用干净茶具，现泡现喝。', source: '饮茶与存放' },
-    { id: 'footbath', title: '晚上泡脚好吗', keywords: '泡脚,睡前,热水', answer: '可以用舒适温度的水短时泡脚放松。脚部有伤口、感觉减退或基础疾病时，先咨询医生。', source: '睡前放松建议' },
+    { id: 'white-dew', title: '白露时节嗓子干', keywords: '白露,嗓子,干,秋燥', answer: '多喝温水，减少长时间讲话。', source: '白露节气起居建议', reviewed: false },
+    { id: 'overnight-tea', title: '隔夜茶能喝吗', keywords: '隔夜茶,茶水,浓茶', answer: '有异味或变色的茶水建议倒掉。', source: '饮茶与存放', reviewed: false },
+    { id: 'footbath', title: '晚上泡脚好吗', keywords: '泡脚,睡前,热水', answer: '可以用舒适温度的水短时泡脚放松。', source: '睡前放松建议', reviewed: false },
   ],
   courses: [
-    { id: 'baduanjin', name: '八段锦', moveName: '双手托天', videoUrl: 'https://example.com/baduanjin-shuangshoutuotian', enabled: true },
-    { id: 'bow', name: '八段锦', moveName: '左右开弓', videoUrl: 'https://example.com/baduanjin-zuoyoukaiGong', enabled: true },
-    { id: 'neck', name: '肩颈操', moveName: '肩颈舒展', videoUrl: 'https://www.example.com/shoulder-neck', enabled: true },
+    { id: 'baduanjin', name: '八段锦', moveName: '双手托天', videoUrl: '', enabled: true },
+    { id: 'bow', name: '八段锦', moveName: '左右开弓', videoUrl: '', enabled: true },
+    { id: 'neck', name: '肩颈操', moveName: '肩颈舒展', videoUrl: '', enabled: true },
   ],
+  audio: [],
+  generation: { enabled: false, instructions: '', maxLength: 300, fallback: { cup: '暂时没有已审核的饮品建议。', move: '请在舒适范围内轻缓活动。', breath: '放松肩膀，跟随自己的节奏呼吸。', question: '暂时没有匹配的已审核知识。' } },
 }
 
 function normalizeKnowledgeItem(item, index) {
@@ -63,16 +65,22 @@ function normalizeKnowledgeItem(item, index) {
     answer: String(item.answer || item.content || ''),
     source: String(item.source || item.title || ''),
     tags,
-    reviewed: item.reviewed !== false,
+    sourceUrl: item.sourceUrl ? String(item.sourceUrl) : '',
+    reviewed: item.reviewed === true,
+    enabled: item.enabled !== false,
   }
 }
 
 export function normalizeConfig(raw = {}) {
+  const llm = { ...DEFAULT_CONFIG.llm, ...(raw.llm || {}) }
+  llm.configured = Boolean(raw.llm?.configured || llm.apiKey)
   return {
-    llm: { ...DEFAULT_CONFIG.llm, ...(raw.llm || {}) },
+    llm,
     dialect: DIALECTS.some(item => item.id === raw.dialect) ? raw.dialect : DEFAULT_CONFIG.dialect,
     knowledge: Array.isArray(raw.knowledge) ? raw.knowledge.map(normalizeKnowledgeItem) : DEFAULT_CONFIG.knowledge.map(normalizeKnowledgeItem),
     courses: Array.isArray(raw.courses) ? raw.courses.map((item, index) => ({ id: item.id || `course-${index + 1}`, name: String(item.name || ''), moveName: String(item.moveName || ''), videoUrl: String(item.videoUrl || ''), enabled: item.enabled !== false })) : DEFAULT_CONFIG.courses.map(item => ({ ...item })),
+    audio: Array.isArray(raw.audio) ? raw.audio.map((item, index) => ({ id: String(item.id || `audio-${index + 1}`), name: String(item.name || ''), url: String(item.url || ''), durationSeconds: Math.max(0, Number(item.durationSeconds) || 0), enabled: item.enabled !== false })) : [],
+    generation: { ...DEFAULT_CONFIG.generation, ...(raw.generation || {}), maxLength: Math.min(1000, Math.max(50, Number(raw.generation?.maxLength) || 300)), fallback: { ...DEFAULT_CONFIG.generation.fallback, ...(raw.generation?.fallback || {}) } },
   }
 }
 
@@ -123,7 +131,7 @@ export function saveConfig(config, storage = globalThis.localStorage) {
 }
 
 export function validateVideoUrl(value) {
-  try { return ['http:', 'https:'].includes(new URL(value).protocol) } catch { return false }
+  try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) && !/(^|\.)example\.com$/i.test(url.hostname) } catch { return false }
 }
 
 export function findKnowledgeMatches(question, knowledge, limit = 3) {
