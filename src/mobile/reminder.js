@@ -5,6 +5,7 @@
  * 纯函数部分与浏览器解耦，便于 vitest 测试。
  */
 
+import {normalizeReminder} from './reminder-schedule.js'
 export const REMINDER_KEY = 'yangling:reminder:v1'
 export const USAGE_KEY = 'yangling:usage:v1'
 export const ALIAS_KEY = 'yangling:alias:v1'
@@ -58,14 +59,14 @@ export function formatDuration(seconds) {
 }
 
 /* ---- 提醒设置（localStorage，storage 可注入便于测试） ---- */
-export const DEFAULT_REMINDER = { enabled: false, intervalMin: 45, beforeSleep: 23 }
+export const DEFAULT_REMINDER = normalizeReminder({ enabled: false, intervalMin: 45, beforeSleep: 23 })
 
 export function loadReminder(storage = globalThis.localStorage) {
-  try { return { ...DEFAULT_REMINDER, ...(JSON.parse(storage?.getItem(REMINDER_KEY) || '{}')) } } catch { return { ...DEFAULT_REMINDER } }
+  try { return normalizeReminder({ ...DEFAULT_REMINDER, ...(JSON.parse(storage?.getItem(REMINDER_KEY) || '{}')) }) } catch { return normalizeReminder(DEFAULT_REMINDER) }
 }
 
 export function saveReminder(reminder, storage = globalThis.localStorage) {
-  const next = { ...DEFAULT_REMINDER, ...reminder }
+  const next = normalizeReminder({ ...DEFAULT_REMINDER, ...reminder })
   storage?.setItem(REMINDER_KEY, JSON.stringify(next))
   return next
 }

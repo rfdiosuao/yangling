@@ -15,7 +15,8 @@ describe('mobile app administration configuration', () => {
     expect(DEFAULT_CONFIG.llm.provider).toBeTruthy()
     expect(DEFAULT_CONFIG.llm.model).toBeTruthy()
     expect(DEFAULT_CONFIG.knowledge.length).toBeGreaterThan(0)
-    expect(DEFAULT_CONFIG.courses.find(item => item.name === '八段锦')?.videoUrl).toMatch(/^https?:\/\//)
+    expect(DEFAULT_CONFIG.courses.find(item => item.name === '八段锦')).toBeTruthy()
+    expect(DEFAULT_CONFIG.courses.every(item=>!validateVideoUrl(item.videoUrl))).toBe(true)
   })
 
   it('normalizes persisted partial data without losing required defaults', () => {
@@ -27,7 +28,8 @@ describe('mobile app administration configuration', () => {
   })
 
   it('accepts http video links and rejects unsafe schemes', () => {
-    expect(validateVideoUrl('https://example.com/video')).toBe(true)
+    expect(validateVideoUrl('https://yangling.entermodetwo.com/video.mp4')).toBe(true)
+    expect(validateVideoUrl('https://example.com/video')).toBe(false)
     expect(validateVideoUrl('http://localhost:8080/video.mp4')).toBe(true)
     expect(validateVideoUrl('javascript:alert(1)')).toBe(false)
     expect(validateVideoUrl('')).toBe(false)

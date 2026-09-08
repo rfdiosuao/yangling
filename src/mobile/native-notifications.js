@@ -1,50 +1,33 @@
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
-
-export const isAndroidApp = () => Capacitor.getPlatform() === 'android'
-export const REMINDER_ID = 4101
-export const CHANNEL_ID = 'yangling-wellness'
-
-export function reminderNotification(intervalMin, alias) {
-  const interval = [15, 30, 45, 60, 90].includes(Number(intervalMin)) ? Number(intervalMin) : 45
-  return {
-    id: REMINDER_ID, channelId: CHANNEL_ID,
-    title: `${alias || '朋友'}，休息一下吧`,
-    body: '喝几口温水，舒展肩颈，给自己一分钟自然呼吸。',
-    schedule: { every: 'minute', count: interval, allowWhileIdle: true },
-    smallIcon: 'ic_stat_yangling', extra: { route: 'home' },
+import {reminderSlots,reminderMessage} from './reminder-schedule.js'
+export const isAndroidApp=()=>Capacitor.getPlatform()==='android'
+export const REMINDER_ID=4101, CHANNEL_ID='yangling-wellness'
+const owned=()=>Array.from({length:100},(_,i)=>({id:REMINDER_ID+i}))
+export function buildNotifications(reminder,alias){
+  return reminderSlots(reminder).map((time,i)=>{
+    const message=reminderMessage(reminder,alias,i),[hour,minute]=time.split(':').map(Number)
+    return {id:REMINDER_ID+i,channelId:CHANNEL_ID,title:message.title,body:message.body,
+      schedule:{on:{hour,minute},repeats:true,allowWhileIdle:true},smallIcon:'ic_stat_yangling',extra:{route:message.route,ritual:message.ritual}}
+  })
+}
+export async function nativePermission(request=false){return(await LocalNotifications[request?'requestPermissions':'checkPermissions']()).display}
+let queue=Promise.resolve()
+export function syncNativeReminder(reminder,alias,{request=false,plugin=LocalNotifications}={}){
+  const task=async()=>{
+    if(!reminder.enabled){await plugin.cancel({notifications:owned()});return 'disabled'}
+    const permission=await plugin[request?'requestPermissions':'checkPermissions']()
+    if(permission.display!=='granted')return permission.display
+    const next=buildNotifications(reminder,alias)
+    if(!next.length)throw new Error('No reminder times')
+    await plugin.createChannel({id:CHANNEL_ID,name:'养令养生提醒',importance:3,visibility:0,vibration:true})
+    const pending=(await plugin.getPending()).notifications.filter(n=>n.id>=REMINDER_ID&&n.id<REMINDER_ID+100)
+    const signature=n=>JSON.stringify([n.id,n.title,n.body,n.schedule?.on,n.extra?.route,n.extra?.ritual])
+    if(pending.length===next.length&&next.every(n=>pending.some(p=>signature(p)===signature(n))))return 'granted'
+    await plugin.cancel({notifications:owned()})
+    await plugin.schedule({notifications:next})
+    return 'granted'
   }
+  const result=queue.then(task,task);queue=result.catch(()=>{});return result
 }
-
-export async function nativePermission(request = false) {
-  const result = await LocalNotifications[request ? 'requestPermissions' : 'checkPermissions']()
-  return result.display
-}
-
-export async function syncNativeReminder(reminder, alias, { request = false, plugin = LocalNotifications } = {}) {
-  if (!reminder.enabled) {
-    await plugin.cancel({ notifications: [{ id: REMINDER_ID }] })
-    return 'disabled'
-  }
-  const permission = await plugin[request ? 'requestPermissions' : 'checkPermissions']()
-  if (permission.display !== 'granted') return permission.display
-  await plugin.createChannel({ id: CHANNEL_ID, name: '养令养生提醒', description: '本机定时休息提醒', importance: 3, visibility: 1, vibration: true })
-  const notification = reminderNotification(reminder.intervalMin, alias)
-  const { notifications } = await plugin.getPending()
-  const previous = notifications.find(item => item.id === REMINDER_ID)
-  if (previous?.schedule?.count === notification.schedule.count && previous.title === notification.title) return 'granted'
-  await plugin.cancel({ notifications: [{ id: REMINDER_ID }] })
-  await plugin.schedule({ notifications: [notification] })
-  return 'granted'
-}
-
-export async function testNativeNotification() {
-  if (await nativePermission(true) !== 'granted') return false
-  await LocalNotifications.createChannel({ id: CHANNEL_ID, name: '养令养生提醒', importance: 3, visibility: 1 })
-  await LocalNotifications.schedule({ notifications: [{ id: 4102, channelId: CHANNEL_ID, title: '养令提醒已就绪', body: '这条通知由安卓系统在本机发出。', smallIcon: 'ic_stat_yangling', schedule: { at: new Date(Date.now() + 5000) } }] })
-  return true
-}
-
-export function listenForReminder(onOpen) {
-  return LocalNotifications.addListener('localNotificationActionPerformed', () => onOpen())
-}
+export function listenForReminder(onOpen){return LocalNotifications.addListener('localNotificationActionPerformed',event=>onOpen(event.notification?.extra||{}))}

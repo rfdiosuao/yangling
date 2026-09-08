@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start:api": "node server/index.mjs",
     "build": "vite build",
     "build:web": "node scripts/build-target.mjs web",
     "build:android": "node scripts/build-target.mjs android",
