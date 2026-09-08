@@ -2,3 +2,11 @@ node_modules/
 dist/
 .DS_Store
 *.local
+# 推送服务器本地生成，勿入库
+.vapid.json
+.subscriptions.json
+dist-web/
+*.apk
+*.jks
+*.keystore
+.tmp-*

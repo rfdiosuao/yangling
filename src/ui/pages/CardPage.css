@@ -74,7 +74,7 @@
 
 .timeline-card {
   flex: 1;
-  padding: 20px 22px;
+  padding: 0;
   position: relative;
   overflow: hidden;
   animation: fade-up 0.5s var(--yl-ease-out) both;
@@ -86,8 +86,30 @@
   height: 3px;
   background: var(--yl-grad-season);
   opacity: 0.6;
+  z-index: 2;
 }
 .timeline-item.is-done .timeline-card { opacity: 0.9; border-color: rgba(201, 152, 45, 0.4); }
+
+/* 卡片顶部视觉图(一杯/一动/一息,黑金风) */
+.card-art { position: relative; height: 132px; overflow: hidden; }
+.card-art img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform var(--yl-dur-med) var(--yl-ease-out); }
+.timeline-card:hover .card-art img { transform: scale(1.05); }
+.card-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(16, 14, 10, 0.05) 35%, rgba(16, 14, 10, 0.62) 100%);
+}
+.card-art-label {
+  position: absolute;
+  left: 18px; bottom: 12px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  color: var(--yl-season-bright);
+  z-index: 1;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.85);
+}
+.card-inner { padding: 18px 22px 20px; }
 
 .timeline-tag { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
 .tag-type {
@@ -110,6 +132,49 @@
   border-left: 3px solid var(--yl-season);
   padding-left: 10px;
 }
+
+/* 令牌 chips(类型/时辰/依据) */
+.card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 2px; }
+.tag-chip {
+  font-size: 11px;
+  color: var(--yl-ink-soft);
+  background: rgba(224, 180, 90, 0.08);
+  border: 1px solid var(--yl-border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  letter-spacing: 0.04em;
+}
+.tag-chip:first-child { color: var(--yl-season-bright); border-color: var(--yl-border-strong); }
+
+/* 引文徽标行 */
+.card-cites {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--yl-border);
+}
+.card-cites-label {
+  font-size: 11px;
+  color: var(--yl-ink-faint);
+  letter-spacing: 0.08em;
+  margin-right: 2px;
+}
+.card-cites-more {
+  font-size: 11px;
+  color: var(--yl-season);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--yl-dur-fast);
+}
+.card-cites-more:hover { color: var(--yl-season-bright); }
+
 .card-actions { margin-top: 14px; }
 .card-done { font-size: 13px; padding: 8px 18px; }
 

@@ -1,0 +1,45 @@
+/* Shared phone layout and Capacitor's actual system-bar insets. */
+.native-app {
+  --yl-safe-top:var(--safe-area-inset-top,env(safe-area-inset-top,0px));
+  --yl-safe-bottom:var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px));
+}
+.ylm-brand{display:flex;align-items:center;gap:7px;min-width:0}
+.ylm-brand-logo{width:39px;height:39px;object-fit:contain;flex:none}
+.ylm-brand>.ylm-brand-copy{font:inherit;display:flex;flex-direction:column;letter-spacing:0}
+.ylm-brand-copy b{font:700 28px/1.05 "SimSun",serif}
+.ylm-brand .ylm-brand-copy small{font:11px/1.4 Georgia,serif;margin:0}
+.ylm-header{flex-shrink:0;gap:8px}
+.ylm-header-tools{min-width:0}
+.ylm-header-tools .ylm-mode{width:174px;flex-shrink:1;min-width:126px}
+.ylm-reminder-trigger{margin-top:0}
+.ylm-knowledge .ylm-answer{overflow:auto}
+.ylm-knowledge .ylm-answer ol{font-size:15px;line-height:1.8}
+.parent-mode .ylm-knowledge .ylm-answer ol{font-size:16px;line-height:1.6}
+.parent-mode .ylm-question-chips{grid-template-columns:repeat(3,minmax(0,1fr))}
+.parent-mode .ylm-question-chips .ylm-chip{font-size:12px;min-height:34px;padding:5px 2px}
+.parent-mode .ylm-question-chips .ylm-chip:last-child{grid-column:auto}
+.ylm-demo-photo{background-size:contain;background-color:#eceae5;background-repeat:no-repeat}
+.ylm-camera-view video,.ylm-camera-view canvas{object-fit:contain}
+.ylm-page h1,.ylm-subtitle{max-width:100%;white-space:normal}
+.ylm-page h1{font-size:clamp(23px,6.8vw,29px)}
+.ylm-subtitle{line-height:1.5}
+.ylm-ritual small{white-space:normal}
+@media(max-width:500px){
+  .ylm-header{height:calc(68px + var(--yl-safe-top));min-height:calc(68px + var(--yl-safe-top));padding:calc(8px + var(--yl-safe-top)) 14px 6px}
+  .ylm-header-tools .ylm-mode{width:clamp(126px,43vw,174px)}
+  .ylm-brand-logo{width:32px;height:32px}
+  .ylm-brand-copy b{font-size:25px}
+  .ylm-brand .ylm-brand-copy small{font-size:10px}
+  .ylm-bottom-nav{height:calc(64px + var(--yl-safe-bottom));min-height:calc(64px + var(--yl-safe-bottom));padding:5px 6px calc(5px + var(--yl-safe-bottom))}
+  .ylm-overlay{padding-bottom:calc(12px + var(--yl-safe-bottom));padding-top:calc(12px + var(--yl-safe-top))}
+  .ylm-sheet{max-height:calc(100dvh - var(--yl-safe-top) - var(--yl-safe-bottom) - 24px)}
+  .ylm-admin-head{padding-top:calc(16px + var(--yl-safe-top))}
+  .ylm-admin-footer{padding-bottom:calc(12px + var(--yl-safe-bottom))}
+}
+@media(max-height:620px){
+  .ylm-scroll{overflow-y:auto}
+  .ylm-page{flex:none}
+  .ylm-ritual{min-height:76px}
+  .ylm-camera-view,.parent-mode .ylm-camera-view{flex:none;height:auto;aspect-ratio:334/339}
+  .ylm-knowledge .ylm-answer{min-height:160px}
+}

@@ -6,20 +6,21 @@
  * 数据流:本地帧 → 姿态关键点 → 达标判断(不上传任何画面)
  */
 
-// 动作契约:每个动作定义关键点对 + 达标角度范围
+// 动作契约:每个动作定义 [起点, 顶点, 终点] 三点 + 达标角度范围
+// 顶点(中间关节)的角度即该动作的关节角,更贴近真实姿态
 export const POSE_CONTRACTS = {
   'move-shoulder': {
     name: '肩颈拉伸',
     target: '肩井穴',
-    joints: ['shoulder', 'elbow'],       // 关键点对
-    targetAngle: 90,                      // 达标角度(度)
-    tolerance: 20,                        // 容差(度)
+    joints: ['shoulder', 'elbow', 'wrist'],   // 肩-肘-腕,肘关节角
+    targetAngle: 90,                          // 手臂抬起肘部与肩同高(度)
+    tolerance: 20,                            // 容差(度)
     hint: '手臂抬起,肘部与肩同高,感受肩颈拉伸',
   },
   'acupoint-neiguan': {
     name: '按揉内关穴',
     target: '内关穴',
-    joints: ['wrist', 'elbow'],
+    joints: ['shoulder', 'elbow', 'wrist'],   // 肩-肘-腕,肘关节角
     targetAngle: 180,
     tolerance: 15,
     hint: '手臂伸直,掌心向上,找到腕横纹上 2 寸',
@@ -27,7 +28,7 @@ export const POSE_CONTRACTS = {
   'acupoint-zusanli': {
     name: '搓揉足三里',
     target: '足三里',
-    joints: ['knee', 'ankle'],
+    joints: ['hip', 'knee', 'ankle'],         // 髋-膝-踝,膝关节角
     targetAngle: 90,
     tolerance: 25,
     hint: '屈膝坐姿,小腿与地面垂直,按揉膝下 3 寸',
@@ -35,7 +36,7 @@ export const POSE_CONTRACTS = {
   'acupoint-yongquan': {
     name: '搓揉涌泉穴',
     target: '涌泉穴',
-    joints: ['ankle', 'toe'],
+    joints: ['knee', 'ankle', 'toe'],         // 膝-踝-脚趾,踝关节角
     targetAngle: 120,
     tolerance: 30,
     hint: '脚掌内收,找到足底前 1/3 凹陷处',
@@ -43,15 +44,16 @@ export const POSE_CONTRACTS = {
   'acupoint-fengchi': {
     name: '按揉风池穴',
     target: '风池穴',
-    joints: ['ear', 'neck'],
+    joints: ['shoulder', 'ear', 'nose'],      // 肩-耳-鼻,头颈部转角
     targetAngle: 45,
     tolerance: 20,
     hint: '头微后仰,拇指按揉后发际凹陷处',
   },
 }
 
-// 关键点索引(MediaPipe Pose 约定)
+// 关键点索引(MediaPipe Pose 33 点约定,左半身)
 export const JOINT_INDEX = {
+  nose: 0,
   shoulder: 11,   // 左肩
   elbow: 13,      // 左肘
   wrist: 15,      // 左腕
@@ -59,7 +61,6 @@ export const JOINT_INDEX = {
   knee: 25,
   ankle: 27,
   ear: 7,
-  neck: 0,
   toe: 31,
 }
 
@@ -83,7 +84,7 @@ export function angleBetween(a, b, c) {
 /**
  * 评估一次姿态反馈
  * @param {string} actionId 动作 id(对应 POSE_CONTRACTS 键)
- * @param {object} feedback 姿态关键点 { joints: { shoulder:{x,y}, elbow:{x,y}, ... } } 或 { angle }
+ * @param {object} feedback 姿态反馈 { joints: { shoulder:{x,y}, elbow:{x,y}, wrist:{x,y}, ... } } 或 { angle }
  * @returns {{ done: boolean, hint: string, angle: number|null }}
  */
 export function estimatePose(actionId, feedback) {
@@ -92,14 +93,16 @@ export function estimatePose(actionId, feedback) {
     return { done: false, hint: '未识别的动作', angle: null }
   }
 
-  // 支持直接传角度(测试/手动场景),或传关键点计算
+  // 支持直接传角度(测试/手动场景),或传三点关键点计算
   let angle = null
   if (typeof feedback?.angle === 'number') {
     angle = feedback.angle
-  } else if (feedback?.joints) {
-    const [p1, p2, p3] = contract.joints.length === 2
-      ? [feedback.joints[contract.joints[0]], feedback.joints.vertex, feedback.joints[contract.joints[1]]]
-      : [null, null, null]
+  } else if (feedback?.joints && contract.joints.length === 3) {
+    const [p1, p2, p3] = [
+      feedback.joints[contract.joints[0]],
+      feedback.joints[contract.joints[1]],
+      feedback.joints[contract.joints[2]],
+    ]
     if (p1 && p2 && p3) {
       angle = angleBetween(p1, p2, p3)
     }

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { DEMO_QUOTES } from '../../core/demo/states.js'
+import heroImg from '../../assets/bg/hero.jpg'
 import './HomePage.css'
 
 export default function HomePage() {
@@ -9,7 +10,7 @@ export default function HomePage() {
       <span className="v-text v-text--left">顺时而养 · 应身而调</span>
       <span className="v-text v-text--right">养令 YANGLING</span>
 
-      <section className="home-hero">
+      <section className="home-hero" style={{ backgroundImage: `url(${heroImg})` }}>
         <div className="home-seal-wrap">
           <span className="home-seal">养</span>
           <span className="home-seal-sub">白露 · 秋金</span>

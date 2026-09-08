@@ -24,6 +24,9 @@ const RISK_TEXT = {
   ok: '以下为生活方式建议,不替代专业诊疗。如有不适请及时就医。',
 }
 
+// 口语程度副词:匹配前先剥离,避免"胸口很痛"切断"胸口痛"这类关键词
+const INTENSIFIER_RE = /很|非常|特别|有点|有一点|好|蛮|略微|稍微|一直|老是|持续不断/g
+
 /**
  * 检查输入文本中的风险信号
  * @param {string} rawText 用户原始输入
@@ -31,8 +34,9 @@ const RISK_TEXT = {
  */
 export function checkRisk(rawText) {
   const text = (rawText || '').toLowerCase()
+  const core = text.replace(INTENSIFIER_RE, '')
 
-  const redMatched = RED_FLAG_KEYWORDS.filter((k) => text.includes(k))
+  const redMatched = RED_FLAG_KEYWORDS.filter((k) => text.includes(k) || core.includes(k))
   if (redMatched.length) {
     return {
       level: 'red_flag',
@@ -42,7 +46,7 @@ export function checkRisk(rawText) {
     }
   }
 
-  const specialMatched = SPECIAL_POPULATION_KEYWORDS.filter((k) => text.includes(k))
+  const specialMatched = SPECIAL_POPULATION_KEYWORDS.filter((k) => text.includes(k) || core.includes(k))
   if (specialMatched.length) {
     return {
       level: 'special',

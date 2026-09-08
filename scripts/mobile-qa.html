@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>养令 · 手机参考图对照</title><style>
+body{margin:0;background:#eee;font-family:Arial,sans-serif}header{height:48px;display:flex;align-items:center;gap:16px;padding:0 24px}a{color:#675239}main{display:flex;gap:24px;padding:0 24px 24px}.column{width:393px;flex-shrink:0}h2{font-size:15px;height:20px;margin:10px 0}.reference{width:393px;height:865px;background-repeat:no-repeat;background-size:1521.529px 1141.155px;background-position:-1090.769px -162.874px;background-color:#fff}iframe{width:393px;height:865px;border:0;background:#fff}
+</style></head><body><header>手机端对照 <a href="?page=home">轻养生</a><a href="?page=knowledge">知识问答</a><a href="?page=motion">动作识别</a></header><main><div class="column"><h2>参考图右半边 · 应用内容</h2><div class="reference" id="reference"></div></div><div class="column"><h2>可交互实现 · 393 × 865</h2><iframe id="app" title="养令原型"></iframe></div></main><script>
+const page = ['home','knowledge','motion'].includes(new URLSearchParams(location.search).get('page')) ? new URLSearchParams(location.search).get('page') : 'home';
+document.getElementById('reference').style.backgroundImage=`url('/prototype/reference-${page}.png')`;
+document.getElementById('app').src='/#'+page;
+const height = {home:865,knowledge:925,motion:900}[page];
+document.getElementById('reference').style.height=height+'px';
+document.getElementById('app').style.height=height+'px';
+document.querySelectorAll('h2')[1].textContent=`可交互实现 · 393 × ${height}`;
+</script></body></html>

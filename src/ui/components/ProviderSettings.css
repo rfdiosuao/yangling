@@ -1,0 +1,49 @@
+/* LLM 接入设置弹窗 */
+.provider-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 9, 6, 0.72);
+  backdrop-filter: blur(6px);
+  padding: 20px;
+  animation: fade-in 0.25s var(--yl-ease);
+}
+.provider-dialog {
+  width: 100%;
+  max-width: 420px;
+  padding: 26px 28px;
+  animation: pop-in 0.35s var(--yl-ease-out);
+}
+.provider-dialog h3 { font-size: 21px; margin-bottom: 8px; }
+.provider-tip { font-size: 13px; line-height: 1.7; color: var(--yl-ink-soft); margin-bottom: 18px; }
+
+.provider-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.provider-field span { font-size: 12px; color: var(--yl-ink-faint); letter-spacing: 0.06em; }
+.provider-field input,
+.provider-field select {
+  background: var(--yl-night-3);
+  border: 1px solid var(--yl-border);
+  border-radius: var(--yl-radius-sm);
+  color: var(--yl-ink);
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--yl-dur-fast);
+}
+.provider-field input:focus,
+.provider-field select:focus { border-color: var(--yl-season); }
+
+.provider-toast {
+  font-size: 13px;
+  color: var(--yl-season-bright);
+  background: var(--yl-season-soft);
+  border-radius: var(--yl-radius-sm);
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  animation: fade-in 0.3s var(--yl-ease);
+}
+.provider-actions { display: flex; gap: 12px; margin-top: 6px; }
+.provider-actions .yl-btn { flex: 1; justify-content: center; text-align: center; }

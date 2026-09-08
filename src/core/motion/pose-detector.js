@@ -30,26 +30,72 @@ export const SKELETON_LINES = [
   [7, 11], [8, 12],              // 耳-肩
 ]
 
-// wasm 已复制到 public/mediapipe-wasm/(离线可用,绕过包 exports 限制)
-const WASM_BASE = '/mediapipe-wasm'
-// 模型:官方 CDN(需网络;离线时 PoseGuide 会回退手动完成)
-const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task'
+// wasm 与模型均已本地化(public/mediapipe-wasm、public/mediapipe),现场零网络可用
+// BASE_URL 拼接,兼容 GH Pages 子路径部署
+// 精度优先:使用 full 模型(9.4MB,本地加载);lite 版留作降级备选
+const WASM_BASE = import.meta.env.BASE_URL + 'mediapipe-wasm'
+const MODEL_URL = import.meta.env.BASE_URL + 'mediapipe/pose_landmarker_full.task'
+const FALLBACK_MODEL_URL = import.meta.env.BASE_URL + 'mediapipe/pose_landmarker_lite.task'
 
 let landmarkerPromise = null
 
-/** 懒加载单例 PoseLandmarker */
+// ---- 关键点平滑(EMA)----
+// 连续帧关键点抖动会让角度数字乱跳,指数移动平均可显著降低抖动
+// alpha 越小越平滑,但响应越慢;0.35 兼顾稳定与跟手
+const SMOOTH_ALPHA = 0.35
+const poseSmoothCache = new Map() // key: 关键点索引 → { x, y, z }
+
+/** 重置平滑缓存(切换摄像头/视频源时调用) */
+export function resetPoseSmoothing() {
+  poseSmoothCache.clear()
+}
+
+/** 对关键点应用 EMA 平滑 */
+function smoothLandmark(p, idx) {
+  const cached = poseSmoothCache.get(idx)
+  if (!cached) {
+    poseSmoothCache.set(idx, { x: p.x, y: p.y, z: p.z })
+    return { x: p.x, y: p.y, z: p.z, visibility: p.visibility }
+  }
+  const a = SMOOTH_ALPHA
+  const s = {
+    x: cached.x + a * (p.x - cached.x),
+    y: cached.y + a * (p.y - cached.y),
+    z: cached.z + a * ((p.z || 0) - cached.z),
+  }
+  poseSmoothCache.set(idx, s)
+  return { x: s.x, y: s.y, z: s.z, visibility: p.visibility }
+}
+
+/** 懒加载单例 PoseLandmarker(GPU 优先,失败自动降级 CPU) */
 export function getPoseLandmarker() {
   if (!landmarkerPromise) {
     landmarkerPromise = (async () => {
       const vision = await FilesetResolver.forVisionTasks(WASM_BASE)
-      return PoseLandmarker.createFromOptions(vision, {
-        baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
+      const shared = {
         runningMode: 'VIDEO',
         numPoses: 1,
         minPoseDetectionConfidence: 0.5,
         minTrackingConfidence: 0.5,
-      })
-    })()
+      }
+      try {
+        // GPU 加速优先(集成显卡/移动端常不支持,失败走 CPU 兜底)
+        return await PoseLandmarker.createFromOptions(vision, {
+          ...shared,
+          baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
+        })
+      } catch (e) {
+        console.warn('[yangling] GPU delegate 初始化失败,降级 CPU:', e)
+        return PoseLandmarker.createFromOptions(vision, {
+          ...shared,
+          baseOptions: { modelAssetPath: MODEL_URL, delegate: 'CPU' },
+        })
+      }
+    })().catch((e) => {
+      // 初始化失败可重试(下次调用重建单例)
+      landmarkerPromise = null
+      throw e
+    })
   }
   return landmarkerPromise
 }
@@ -65,13 +111,12 @@ export function detectPose(landmarker, video, timestamp) {
   const result = landmarker.detectForVideo(video, timestamp)
   const landmarks = result?.landmarks?.[0]
   if (!landmarks) return null
-  // 归一化到视频尺寸(MediaPipe 返回 0-1)
-  return landmarks.map((p) => ({
-    x: p.x * video.videoWidth,
-    y: p.y * video.videoHeight,
-    z: p.z || 0,
-    visibility: p.visibility || 0,
-  }))
+  // 归一化到视频尺寸(MediaPipe 返回 0-1),并做 EMA 平滑抑制抖动
+  return landmarks.map((p, idx) => {
+    const px = p.x * video.videoWidth
+    const py = p.y * video.videoHeight
+    return smoothLandmark({ x: px, y: py, z: p.z || 0, visibility: p.visibility || 0 }, idx)
+  })
 }
 
 /**
@@ -134,4 +179,5 @@ export async function releasePoseLandmarker() {
     try { lm.close() } catch {}
     landmarkerPromise = null
   }
+  resetPoseSmoothing()
 }

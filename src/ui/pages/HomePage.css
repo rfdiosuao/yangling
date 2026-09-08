@@ -6,8 +6,29 @@
 .v-text--left { left: 18px; }
 .v-text--right { right: 18px; }
 
-/* Hero */
-.home-hero { text-align: center; padding: 56px 0 20px; position: relative; z-index: 3; }
+/* Hero(黑金山水背景图 + 暗部径向压暗,保证文字可读) */
+.home-hero {
+  text-align: center;
+  padding: 60px 26px 54px;
+  position: relative;
+  z-index: 3;
+  border-radius: var(--yl-radius-lg);
+  border: 1px solid var(--yl-border);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  box-shadow: var(--yl-glow-season), var(--yl-shadow-md);
+}
+.home-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 30%, rgba(16, 14, 10, 0.05) 0%, rgba(16, 14, 10, 0.55) 55%, rgba(16, 14, 10, 0.86) 100%),
+    linear-gradient(180deg, rgba(16, 14, 10, 0.25) 0%, transparent 40%, rgba(16, 14, 10, 0.6) 100%);
+  pointer-events: none;
+}
+.home-hero > * { position: relative; z-index: 1; }
 .home-seal-wrap { display: inline-flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
 .home-seal {
   width: 78px; height: 78px;

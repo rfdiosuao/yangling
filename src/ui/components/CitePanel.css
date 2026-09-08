@@ -1,0 +1,93 @@
+/* ===== 引用面板(引文来源)===== */
+.cite-panel {
+  margin-top: 18px;
+  padding: 18px 20px;
+  border-radius: var(--yl-radius-md);
+  background: var(--yl-night-3);
+  border-color: var(--yl-border-strong);
+  animation: fade-up 0.35s var(--yl-ease-out) both;
+}
+.cite-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cite-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--yl-season-bright);
+}
+.cite-panel-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--yl-ink-faint);
+  margin-left: 6px;
+}
+.cite-panel-close {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--yl-border);
+  background: transparent;
+  color: var(--yl-ink-faint);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color var(--yl-dur-fast), color var(--yl-dur-fast);
+}
+.cite-panel-close:hover { border-color: var(--yl-season); color: var(--yl-season-bright); }
+
+.cite-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+.cite-item { display: flex; gap: 10px; }
+.cite-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--yl-season);
+  background: var(--yl-season-soft);
+  border: 1px solid var(--yl-border-strong);
+  border-radius: 8px;
+  padding: 2px 7px;
+  height: fit-content;
+  white-space: nowrap;
+}
+.cite-body { flex: 1; min-width: 0; }
+.cite-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.cite-source {
+  font-size: 11px;
+  color: var(--yl-season-strong, var(--yl-season-bright));
+  background: rgba(224, 180, 90, 0.1);
+  border: 1px solid var(--yl-border);
+  border-radius: 999px;
+  padding: 1px 9px;
+}
+.cite-score { font-size: 11px; color: var(--yl-ink-faint); }
+.cite-title { font-size: 13px; font-weight: 600; color: var(--yl-paper-deep); margin-bottom: 3px; }
+.cite-text {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--yl-ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 行内引用徽标(消息/卡片内)[1][2] */
+.cite-inline {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--yl-font-sans);
+  color: var(--yl-season-bright);
+  background: var(--yl-season-soft);
+  border: 1px solid var(--yl-border-strong);
+  border-radius: 8px;
+  padding: 1px 7px;
+  margin: 0 2px;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: transform var(--yl-dur-fast) var(--yl-ease-out), box-shadow var(--yl-dur-fast);
+}
+.cite-inline:hover { transform: translateY(-1px); box-shadow: var(--yl-glow-season); }

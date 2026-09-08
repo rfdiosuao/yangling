@@ -37,18 +37,45 @@ export function validateState(state) {
   return { ok: errors.length === 0, errors }
 }
 
+/** 校验引用数组(可选字段):数组、id 唯一、{id,source,label} 必填 */
+export function validateCites(cites) {
+  const errors = []
+  if (cites == null) return { ok: true, errors }
+  if (!Array.isArray(cites)) return { ok: false, errors: ['cites 必须为数组'] }
+  const ids = new Set()
+  for (const c of cites) {
+    if (!c || typeof c !== 'object') { errors.push('cites 项必须为对象'); continue }
+    if (!c.id || !c.source || !c.label) errors.push('cites 项缺少 id/source/label')
+    if (c.id != null) {
+      if (ids.has(c.id)) errors.push(`cites id 重复: ${c.id}`)
+      ids.add(c.id)
+    }
+  }
+  return { ok: errors.length === 0, errors }
+}
+
 /** 返回 { ok, errors[] } */
 export function validateIntervention(intervention) {
   const errors = []
   if (!intervention || typeof intervention !== 'object') return { ok: false, errors: ['intervention 必须为对象'] }
   if (intervention.schemaVersion !== '1.0') errors.push(`schemaVersion 应为 1.0,实际 ${intervention.schemaVersion}`)
   if (!Array.isArray(intervention.cards)) errors.push('cards 必须为数组')
+  const citeIds = new Set((intervention.cites || []).map((c) => c.id))
   for (const c of intervention.cards || []) {
     if (c.type && !CARD_TYPES.includes(c.type)) errors.push(`未知卡片类型: ${c.type}`)
     if (c.id == null) errors.push('卡片缺少 id')
+    // 可选字段(出现才校验,向后兼容)
+    if (c.tags != null && (!Array.isArray(c.tags) || c.tags.some((t) => !t || typeof t.k !== 'string' || typeof t.v !== 'string'))) {
+      errors.push('卡片 tags 必须为 [{k,v}] 字符串数组')
+    }
+    if (c.citeIds != null && (!Array.isArray(c.citeIds) || c.citeIds.some((id) => !citeIds.has(id)))) {
+      errors.push(`卡片 citeIds 必须全部存在于 intervention.cites.id: ${c.id}`)
+    }
   }
   if (!intervention.summary || typeof intervention.summary !== 'object') errors.push('缺少 summary')
   if (!intervention.disclaimer) errors.push('缺少 disclaimer')
+  const citesCheck = validateCites(intervention.cites)
+  if (!citesCheck.ok) errors.push(...citesCheck.errors)
   return { ok: errors.length === 0, errors }
 }
 

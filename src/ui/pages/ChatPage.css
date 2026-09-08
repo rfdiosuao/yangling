@@ -11,6 +11,20 @@
   border: 1px solid var(--yl-border-strong);
   white-space: nowrap;
 }
+.provider-btn {
+  margin-left: auto;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--yl-card);
+  border: 1px solid var(--yl-border);
+  color: var(--yl-ink-soft);
+  cursor: pointer;
+  font-family: var(--yl-font-sans);
+  white-space: nowrap;
+  transition: border-color var(--yl-dur-fast), color var(--yl-dur-fast);
+}
+.provider-btn:hover { border-color: var(--yl-season); color: var(--yl-season); }
 .chat-box { display: flex; flex-direction: column; min-height: 380px; }
 
 .chat-messages {

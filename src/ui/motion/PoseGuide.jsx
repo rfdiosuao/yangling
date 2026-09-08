@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { estimatePose } from '../../core/motion/pose-engine.js'
+import { estimatePose, POSE_CONTRACTS, JOINT_INDEX } from '../../core/motion/pose-engine.js'
 import { requestCamera, stopCamera, attachStream, CAMERA_STATUS, isSecureContext } from '../../core/motion/camera.js'
-import { getPoseLandmarker, detectPose, drawSkeleton, jointAngle, releasePoseLandmarker, POSE_JOINTS } from '../../core/motion/pose-detector.js'
+import { getPoseLandmarker, detectPose, drawSkeleton, releasePoseLandmarker, resetPoseSmoothing } from '../../core/motion/pose-detector.js'
 import './PoseGuide.css'
 
 /**
@@ -16,6 +16,7 @@ export default function PoseGuide({ action = {}, onComplete, compact = false }) 
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const landmarkerRef = useRef(null)
+  const holdRef = useRef(0)      // 连续达标帧计数
   const [camStatus, setCamStatus] = useState(CAMERA_STATUS.IDLE)
   const [streamRef, setStreamRef] = useState(null)
   const [poseResult, setPoseResult] = useState(null)
@@ -25,13 +26,18 @@ export default function PoseGuide({ action = {}, onComplete, compact = false }) 
   const [modelLoading, setModelLoading] = useState(false)
   const rafRef = useRef(null)
 
-  // 检测循环:每帧 → MediaPipe 关键点 → 骨架绘制 → 角度 → 达标判断
+  // 多帧确认:连续达标帧数达到门槛才判定完成,抑制瞬时误判
+  const REQUIRED_FRAMES = 8
+
+  // 检测循环:每帧 → MediaPipe 关键点(EMA 平滑) → 骨架绘制 → 三点夹角 → 达标判断
   const runDetectionLoop = useCallback(async (video) => {
     try {
       setModelLoading(true)
       const landmarker = await getPoseLandmarker()
       landmarkerRef.current = landmarker
       setModelLoading(false)
+
+      const contract = POSE_CONTRACTS[animationId] || POSE_CONTRACTS['move-shoulder']
 
       const tick = () => {
         if (video.readyState >= 2 && video.videoWidth > 0) {
@@ -44,19 +50,20 @@ export default function PoseGuide({ action = {}, onComplete, compact = false }) 
               canvasRef.current.height = video.videoHeight
               drawSkeleton(canvasRef.current, landmarks)
             }
-            // 实时角度:按动作取关键点对(简化:肩-肘-腕 或 耳-肩)
-            let angle = null
-            if (animationId === 'move-shoulder' || animationId === 'acupoint-fengchi') {
-              angle = jointAngle(landmarks, POSE_JOINTS.leftShoulder, POSE_JOINTS.leftElbow)
-            } else if (animationId === 'acupoint-neiguan') {
-              angle = jointAngle(landmarks, POSE_JOINTS.leftElbow, POSE_JOINTS.leftWrist)
-            } else {
-              angle = jointAngle(landmarks, POSE_JOINTS.leftShoulder, POSE_JOINTS.leftElbow)
+            // 三点夹角:按动作契约 [起点,顶点,终点] 取关节坐标,缺失关键点则跳过本帧
+            const joints = {}
+            let complete = true
+            for (const name of contract.joints) {
+              const p = landmarks[JOINT_INDEX[name]]
+              if (p && p.visibility >= 0.3) joints[name] = { x: p.x, y: p.y }
+              else complete = false
             }
-            if (angle !== null) {
-              const result = estimatePose(animationId, { angle })
+            if (complete) {
+              const result = estimatePose(animationId, { joints })
               setPoseResult(result)
-              if (result.done && onComplete) onComplete()
+              // 连续达标 N 帧才算完成
+              holdRef.current = result.done ? holdRef.current + 1 : 0
+              if (holdRef.current >= REQUIRED_FRAMES && onComplete) onComplete()
             }
           }
         }
@@ -138,7 +145,7 @@ export default function PoseGuide({ action = {}, onComplete, compact = false }) 
               {poseResult && !poseResult.done && <span className="pose-angle">{poseResult.angle}°</span>}
             </div>
             <div className="pose-camera-actions">
-              <button className="yl-btn yl-btn--ghost" onClick={() => { stopCamera(streamRef); setCamStatus(CAMERA_STATUS.IDLE); setPoseResult(null) }}>
+              <button className="yl-btn yl-btn--ghost" onClick={() => { stopCamera(streamRef); resetPoseSmoothing(); holdRef.current = 0; setCamStatus(CAMERA_STATUS.IDLE); setPoseResult(null) }}>
                 关闭摄像头
               </button>
               <button className="yl-btn yl-btn--ghost" onClick={handleManualComplete} disabled={manualDone}>

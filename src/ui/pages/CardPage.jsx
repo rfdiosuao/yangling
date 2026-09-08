@@ -2,6 +2,10 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addPlan, checkIn, loadProfile } from '../../core/profile/store.js'
 import PoseGuide from '../motion/PoseGuide.jsx'
+import CitePanel from '../components/CitePanel.jsx'
+import cupImg from '../../assets/bg/cup.jpg'
+import moveImg from '../../assets/bg/move.jpg'
+import breathImg from '../../assets/bg/breath.jpg'
 import './CardPage.css'
 
 const TYPE_META = {
@@ -9,6 +13,8 @@ const TYPE_META = {
   move: { label: '一动', emoji: '🧘', desc: '穴位/导引' },
   breath: { label: '一息', emoji: '🌬️', desc: '呼吸/作息' },
 }
+
+const TYPE_IMG = { cup: cupImg, move: moveImg, breath: breathImg }
 
 export default function CardPage() {
   const [intervention, setIntervention] = useState(() => {
@@ -22,6 +28,7 @@ export default function CardPage() {
   const [completions, setCompletions] = useState({})
   const [checkedIn, setCheckedIn] = useState(false)
   const [toast, setToast] = useState('')
+  const [openCites, setOpenCites] = useState(null)
 
   // 无数据时给一个默认展示(演示兜底,明确标注)
   const cards = useMemo(() => {
@@ -86,38 +93,79 @@ export default function CardPage() {
             >
               <div className="timeline-dot">{meta.emoji}</div>
               <div className="yl-card timeline-card">
-                <div className="timeline-tag">
-                  <span className="tag-type">{meta.label}</span>
-                  <span className="tag-time">{card.timeSlot} {card.time || ''}</span>
-                </div>
-                <h3 className="font-serif">{card.title}</h3>
+                {TYPE_IMG[card.type] && (
+                  <div className="card-art" aria-hidden="true">
+                    <img src={TYPE_IMG[card.type]} alt="" loading="lazy" />
+                    <span className="card-art-label">{meta.label} · {meta.desc}</span>
+                  </div>
+                )}
+                <div className="card-inner">
+                  <div className="timeline-tag">
+                    <span className="tag-type">{meta.label}</span>
+                    <span className="tag-time">{card.timeSlot} {card.time || ''}</span>
+                  </div>
+                  <h3 className="font-serif">{card.title}</h3>
 
-                {card.ingredients && (
-                  <p className="card-body">
-                    <strong>食材:</strong> {card.ingredients.join('、')}
-                  </p>
-                )}
-                {card.acupoint && (
-                  <p className="card-body">
-                    <strong>{card.acupoint}</strong> · {card.location}
-                  </p>
-                )}
-                {card.type === 'move' && (
-                  <PoseGuide action={card} onComplete={() => toggleCard(card.id)} compact />
-                )}
-                {card.steps && (
-                  <p className="card-body">
-                    <strong>步骤:</strong> {card.steps.join(' → ')}
-                    {card.repeat ? ` · 重复 ${card.repeat} 轮` : ''}
-                  </p>
-                )}
-                {card.method && <p className="card-body"><strong>做法:</strong> {card.method}</p>}
-                {card.reason && <p className="card-reason yl-faint">“{card.reason}”</p>}
+                  {card.tags?.length > 0 && (
+                    <div className="card-tags">
+                      {card.tags.map((t, i) => (
+                        <span key={i} className="tag-chip">
+                          {t.k}·{t.v}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-                <div className="card-actions">
-                  <button className="yl-btn yl-btn--ghost card-done" onClick={() => toggleCard(card.id)}>
-                    {done ? '✓ 已完成' : '○ 做完打卡'}
-                  </button>
+                  {card.ingredients && (
+                    <p className="card-body">
+                      <strong>食材:</strong> {card.ingredients.join('、')}
+                    </p>
+                  )}
+                  {card.acupoint && (
+                    <p className="card-body">
+                      <strong>{card.acupoint}</strong> · {card.location}
+                    </p>
+                  )}
+                  {card.type === 'move' && (
+                    <PoseGuide action={card} onComplete={() => toggleCard(card.id)} compact />
+                  )}
+                  {card.steps && (
+                    <p className="card-body">
+                      <strong>步骤:</strong> {card.steps.join(' → ')}
+                      {card.repeat ? ` · 重复 ${card.repeat} 轮` : ''}
+                    </p>
+                  )}
+                  {card.method && <p className="card-body"><strong>做法:</strong> {card.method}</p>}
+                  {card.reason && <p className="card-reason yl-faint">“{card.reason}”</p>}
+
+                  {card.citeIds?.length > 0 && (
+                    <div className="card-cites">
+                      <span className="card-cites-label">引文</span>
+                      {card.citeIds.map((id) => {
+                        const idx = (intervention?.cites || []).findIndex((c) => c.id === id)
+                        if (idx < 0) return null
+                        return (
+                          <button
+                            key={id}
+                            className="cite-inline"
+                            onClick={() => setOpenCites(intervention.cites)}
+                            title={intervention.cites[idx].title}
+                          >
+                            [{idx + 1}]
+                          </button>
+                        )
+                      })}
+                      <button className="card-cites-more" onClick={() => setOpenCites(intervention.cites)}>
+                        查看来源
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="card-actions">
+                    <button className="yl-btn yl-btn--ghost card-done" onClick={() => toggleCard(card.id)}>
+                      {done ? '✓ 已完成' : '○ 做完打卡'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -142,6 +190,8 @@ export default function CardPage() {
       {!intervention && (
         <p className="card-demo-note yl-faint">(当前为演示兜底数据 — 请先到「说状态」输入你的情况)</p>
       )}
+
+      {openCites && <CitePanel cites={openCites} onClose={() => setOpenCites(null)} />}
 
       <p className="card-disclaimer yl-faint">
         {intervention?.safety?.disclaimer || '本方案为生活方式建议,不替代专业诊疗。如有不适请及时就医。'}

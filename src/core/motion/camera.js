@@ -32,7 +32,8 @@ export async function requestCamera() {
   }
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      // 720p:关键点精度明显高于 480p(ideal 让低配设备自动降档)
+      video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false,
     })
     return { status: CAMERA_STATUS.ACTIVE, stream }

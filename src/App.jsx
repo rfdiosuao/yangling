@@ -19,7 +19,7 @@ const NAV = [
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <BreathingBackground />
       <div className="yl-shell">
         <header className="yl-nav">

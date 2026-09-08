@@ -1,9 +1,36 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { extractState, getLlmMode } from '../../core/llm/client.js'
-import { runEngine } from '../../core/engine/index.js'
+import { answer } from '../../core/agent/agent.js'
+import { isLlmEnabled } from '../../core/agent/provider.js'
 import { DEMO_STATES } from '../../core/demo/states.js'
+import CitePanel from '../components/CitePanel.jsx'
+import ProviderSettings from '../components/ProviderSettings.jsx'
 import './ChatPage.css'
+
+/** 解析消息文本里的 {cite:n} 占位 → [n] 可点击徽标(点击展开来源) */
+function renderCites(text, cites, onOpen) {
+  const parts = String(text).split(/(\{cite:\d+\})/g)
+  return parts.map((part, i) => {
+    const m = /^\{cite:(\d+)\}$/.exec(part)
+    if (m) {
+      const idx = Number(m[1])
+      const cite = cites?.[idx]
+      if (!cite) return <span key={i}>{part}</span>
+      return (
+        <button
+          key={i}
+          className="cite-inline"
+          onClick={() => onOpen(cites)}
+          title={cite.title}
+          aria-label={`引用 ${idx + 1}:${cite.title}`}
+        >
+          [{idx + 1}]
+        </button>
+      )
+    }
+    return <span key={i}>{part}</span>
+  })
+}
 
 export default function ChatPage() {
   const navigate = useNavigate()
@@ -12,7 +39,13 @@ export default function ChatPage() {
     { role: 'bot', text: '早上好,我是养令。今天感觉怎么样?随便说一句就行,比如:"昨晚没睡好,今天有点累"。' },
   ])
   const [thinking, setThinking] = useState(false)
-  const [modeNote] = useState(getLlmMode() === 'mock' ? '演示模式(规则兜底)' : '在线模式')
+  const [openCites, setOpenCites] = useState(null)
+  const [providerOpen, setProviderOpen] = useState(false)
+  const [modeNote, setModeNote] = useState(isLlmEnabled() ? '在线模式(LLM 润色)' : '演示模式(规则检索)')
+
+  function refreshMode() {
+    setModeNote(isLlmEnabled() ? '在线模式(LLM 润色)' : '演示模式(规则检索)')
+  }
 
   async function handleSend() {
     const text = input.trim()
@@ -22,11 +55,11 @@ export default function ChatPage() {
     setThinking(true)
 
     try {
-      // M1:抽取状态(关键词识别 + 风险检查)→ M2:规则引擎
-      const stateJson = await extractState(text)
+      // Agent 主链路:安全门禁 → 抽取 → 规则引擎 → RAG 引用 → 记忆 → (可选)LLM
+      const res = await answer(text)
 
-      // 风险输入:不跳转,直接提示
-      if (stateJson.risk?.level === 'red_flag') {
+      // 红旗症状:直接就医提示,不出干预
+      if (res.redFlag) {
         setMessages((m) => [
           ...m,
           { role: 'bot', text: '⚠️ 您描述的情况可能比较紧急。为了您的安全,请立即就医或拨打急救电话。我无法提供养生建议替代专业诊疗。', risk: true },
@@ -35,7 +68,7 @@ export default function ChatPage() {
       }
 
       // 未识别:引导补充信息,不硬出方案
-      if (!stateJson.inferred?.matchedState) {
+      if (res.needInfo) {
         setMessages((m) => [
           ...m,
           { role: 'bot', text: '我还需要更多信息才能帮你。可以告诉我:睡眠怎么样?有没有哪里不舒服?或者点下面的预置场景试试。', needInfo: true },
@@ -43,9 +76,8 @@ export default function ChatPage() {
         return
       }
 
-      const intervention = runEngine(stateJson)
-      sessionStorage.setItem('yangling:lastState', JSON.stringify(stateJson))
-      sessionStorage.setItem('yangling:lastIntervention', JSON.stringify(intervention))
+      const intervention = res.intervention
+      const cites = res.cites || intervention?.cites || []
 
       setMessages((m) => [
         ...m,
@@ -53,10 +85,11 @@ export default function ChatPage() {
           role: 'bot',
           text: `我明白了。按你的情况(${intervention.context.constitutionLabel || intervention.context.constitution} · ${intervention.summary.headline}),今天这份时序卡已经给你排好了——`,
         },
-        { role: 'bot', text: intervention.summary.oneLine },
+        { role: 'bot', text: `${intervention.summary.oneLine}{cite:0}`, cites },
       ])
       navigate('/card')
     } catch (e) {
+      console.warn('[yangling] answer 失败:', e)
       setMessages((m) => [...m, { role: 'bot', text: '抱歉,刚才走神了。能再说一遍吗?' }])
     } finally {
       setThinking(false)
@@ -73,17 +106,27 @@ export default function ChatPage() {
       <div className="chat-head">
         <h1 className="page-title font-serif">说状态</h1>
         <span className="mode-badge">{modeNote}</span>
+        <button className="provider-btn" onClick={() => setProviderOpen(true)} title="接入 LLM(可选,只润色文案)">
+          ⚙ 接入 LLM
+        </button>
       </div>
+      {providerOpen && (
+        <ProviderSettings onClose={() => setProviderOpen(false)} onChanged={refreshMode} />
+      )}
       <p className="page-subtitle yl-muted">用自然语言说说今天的感受,养令帮你排一张时序卡。</p>
 
       <div className="chat-box yl-card">
         <div className="chat-messages">
           {messages.map((m, i) => (
-            <div key={i} className={'chat-msg chat-msg--' + m.role + (m.risk ? ' is-risk' : '') + (m.needInfo ? ' is-needinfo' : '')}>
-              {m.text}
+            <div
+              key={i}
+              className={'chat-msg chat-msg--' + m.role + (m.risk ? ' is-risk' : '') + (m.needInfo ? ' is-needinfo' : '')}
+            >
+              {m.cites ? renderCites(m.text, m.cites, setOpenCites) : m.text}
             </div>
           ))}
           {thinking && <div className="chat-msg chat-msg--bot chat-msg--thinking">养令正在看时令…</div>}
+          {openCites && <CitePanel cites={openCites} onClose={() => setOpenCites(null)} />}
         </div>
         <div className="chat-input">
           <input
