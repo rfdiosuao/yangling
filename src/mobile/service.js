@@ -38,7 +38,8 @@ export async function fetchPublicConfig() { return absoluteMedia(await request('
 export async function fetchAdminConfig(token) { return absoluteMedia(await request('/api/admin/config', { headers: tokenHeaders(token) })) }
 export async function publishConfig(config, token) { return absoluteMedia(await request('/api/admin/config', { method: 'PUT', headers: tokenHeaders(token, true), body: JSON.stringify(config) })) }
 export async function uploadAudio(file, token) {
-  return request('/api/admin/audio', { method: 'POST', headers: { ...tokenHeaders(token), 'Content-Type': file.type, 'X-Filename': file.name }, body: file })
+  const result = await request('/api/admin/audio', { method: 'POST', headers: { ...tokenHeaders(token), 'Content-Type': file.type, 'X-Filename': file.name }, body: file })
+  return { ...result, url: result.url?.startsWith('/api/audio/') ? apiUrl(result.url) : result.url }
 }
 export async function generateKnowledge(kind, question) {
   return request('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, question }) })
