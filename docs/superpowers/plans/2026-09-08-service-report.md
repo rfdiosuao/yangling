@@ -40,3 +40,30 @@
 - RED：`npx vitest run tests/service.test.js` 新增 3 项用例后失败，分别复现问答原文被开关阻断、三卡片并发被节流、中文文件名未编码。
 - GREEN：`npx vitest run tests/service.test.js` 通过 10 项，新增覆盖 Android native 基址、中文文件名/MIME 回退、三卡片并发与意图、问答原文、上游响应上限、GitHub Pages CORS 和 `no-store`。
 - 生成上游改为每客户每分钟 12 次、最大并发 3，首页三卡片可同时生成；超限仍安全回退。
+
+## 审查加固（2026-09-09）
+
+### RED
+
+- `npx vitest run tests/service.test.js`：14 项中 5 项失败，分别复现任意 localhost 端口被放行、未知凭据字段泄漏、`bytes=-N` 返回 416、Nginx 回环代理后所有用户共用限流桶、上传 12 秒被中止。
+- `npx vitest run tests/service.test.js -t "exposes unreviewed research"`：失败，当时尚无 `/api/research` 路由。
+
+### GREEN
+
+- `npx vitest run tests/service.test.js --maxWorkers=1`：15/15 通过。
+- `npx vitest run tests/research.test.js --maxWorkers=1`：2/2 通过。
+- `npx vitest run tests/mobile-config.test.js tests/mobile-llm.test.js --maxWorkers=1`：9/9 通过。
+- 多文件默认并行运行时由于 8,322 个论文分块被多个 Vitest worker 同时加载，2 个 worker 异常退出；改为 `--maxWorkers=1` 后各组全部通过。
+
+### 变更
+
+- 只信任来自回环连接且通过 IP 语法校验的 `X-Real-IP`，并在生成请求时清理过期限流记录。
+- LLM 与 generation 按明确 schema 归一化，未知 token/password/authorization 类字段不再持久化或返回。
+- 音频支持后缀 Range，缺失文件返回 404，非法范围返回 416，文件句柄用 `finally` 关闭。
+- CORS 仅允许生产域、GitHub Pages 域、localhost 无端口或 5173，以及 `127.0.0.1:5173`。音频上传客户端超时单独调整为 120 秒。
+- 新增论文检索接口；未审核论文只作问答的研究资料展示，不进入三张个性化卡片或 LLM 上下文。
+
+### 剩余限制
+
+- 论文资料保持 `reviewed:false`，界面需按“研究资料”而非个体健康建议展示。
+- 本轮未部署。

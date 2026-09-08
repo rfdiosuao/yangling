@@ -72,15 +72,30 @@ function normalizeKnowledgeItem(item, index) {
 }
 
 export function normalizeConfig(raw = {}) {
-  const llm = { ...DEFAULT_CONFIG.llm, ...(raw.llm || {}) }
-  llm.configured = Boolean(raw.llm?.configured || llm.apiKey)
+  const submittedLlm = raw.llm || {}
+  const llm = {
+    provider: String(submittedLlm.provider ?? DEFAULT_CONFIG.llm.provider),
+    baseUrl: String(submittedLlm.baseUrl ?? DEFAULT_CONFIG.llm.baseUrl),
+    model: String(submittedLlm.model ?? DEFAULT_CONFIG.llm.model),
+    apiKey: String(submittedLlm.apiKey || ''),
+    systemPrompt: String(submittedLlm.systemPrompt ?? DEFAULT_CONFIG.llm.systemPrompt),
+    configured: Boolean(submittedLlm.configured || submittedLlm.apiKey),
+  }
+  const submittedGeneration = raw.generation || {}
+  const submittedFallback = submittedGeneration.fallback || {}
+  const generation = {
+    enabled: submittedGeneration.enabled === true,
+    instructions: String(submittedGeneration.instructions || ''),
+    maxLength: Math.min(1000, Math.max(50, Number(submittedGeneration.maxLength) || 300)),
+    fallback: Object.fromEntries(Object.keys(DEFAULT_CONFIG.generation.fallback).map(kind => [kind, String(submittedFallback[kind] ?? DEFAULT_CONFIG.generation.fallback[kind])])),
+  }
   return {
     llm,
     dialect: DIALECTS.some(item => item.id === raw.dialect) ? raw.dialect : DEFAULT_CONFIG.dialect,
     knowledge: Array.isArray(raw.knowledge) ? raw.knowledge.map(normalizeKnowledgeItem) : DEFAULT_CONFIG.knowledge.map(normalizeKnowledgeItem),
     courses: Array.isArray(raw.courses) ? raw.courses.map((item, index) => ({ id: item.id || `course-${index + 1}`, name: String(item.name || ''), moveName: String(item.moveName || ''), videoUrl: String(item.videoUrl || ''), enabled: item.enabled !== false })) : DEFAULT_CONFIG.courses.map(item => ({ ...item })),
     audio: Array.isArray(raw.audio) ? raw.audio.map((item, index) => ({ id: String(item.id || `audio-${index + 1}`), name: String(item.name || ''), url: String(item.url || ''), durationSeconds: Math.max(0, Number(item.durationSeconds) || 0), enabled: item.enabled !== false })) : [],
-    generation: { ...DEFAULT_CONFIG.generation, ...(raw.generation || {}), maxLength: Math.min(1000, Math.max(50, Number(raw.generation?.maxLength) || 300)), fallback: { ...DEFAULT_CONFIG.generation.fallback, ...(raw.generation?.fallback || {}) } },
+    generation,
   }
 }
 

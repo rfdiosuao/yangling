@@ -35,6 +35,18 @@ describe('YangLing service', () => {
     expect(publicConfig.knowledge.every(item => item.reviewed === false)).toBe(true)
   })
 
+  it('allows only the documented local development CORS origins', async () => {
+    const { base } = await start()
+    for (const origin of ['http://localhost', 'https://localhost', 'http://localhost:5173', 'https://localhost:5173', 'http://127.0.0.1:5173', 'https://127.0.0.1:5173']) {
+      const response = await fetch(`${base}/config`, { headers: { Origin: origin } })
+      expect(response.headers.get('access-control-allow-origin')).toBe(origin)
+    }
+    for (const origin of ['http://localhost:3000', 'https://127.0.0.1', 'https://127.0.0.1:8789']) {
+      const response = await fetch(`${base}/config`, { headers: { Origin: origin } })
+      expect(response.headers.get('access-control-allow-origin')).toBeNull()
+    }
+  })
+
   it('persists config atomically and preserves or explicitly clears the secret', async () => {
     const { base, dataDir } = await start()
     const put = body => fetch(`${base}/admin/config`, { method: 'PUT', headers: auth, body: JSON.stringify(body) })
@@ -46,6 +58,24 @@ describe('YangLing service', () => {
     await put({ llm: { clearApiKey: true }, knowledge: [], courses: [] })
     expect((await (await fetch(`${base}/admin/config`, { headers: { Authorization: 'Bearer test-token' } })).json()).llm.configured).toBe(false)
     expect((await readFile(join(dataDir, 'config.json'), 'utf8')).includes('top-secret')).toBe(false)
+  })
+
+  it('drops unknown credential-like config fields from public and persisted schemas', async () => {
+    const { base, dataDir } = await start()
+    const response = await fetch(`${base}/admin/config`, { method: 'PUT', headers: auth, body: JSON.stringify({
+      llm: { apiKey: 'real-key', baseUrl: 'https://api.openai.com/v1', model: 'm', token: 'leak-token', password: 'leak-password', authorization: 'leak-auth' },
+      generation: { enabled: true, instructions: 'brief', maxLength: 200, token: 'generation-token', authorization: 'generation-auth', fallback: { question: 'safe', password: 'nested-password' } },
+      knowledge: [], courses: [],
+    }) })
+    const adminConfig = await response.json()
+    const publicConfig = await (await fetch(`${base}/config`)).json()
+    const persisted = await readFile(join(dataDir, 'config.json'), 'utf8')
+    for (const value of ['leak-token', 'leak-password', 'leak-auth', 'generation-token', 'generation-auth', 'nested-password']) {
+      expect(JSON.stringify(adminConfig)).not.toContain(value)
+      expect(JSON.stringify(publicConfig)).not.toContain(value)
+      expect(persisted).not.toContain(value)
+    }
+    expect(adminConfig).toMatchObject({ llm: { baseUrl: 'https://api.openai.com/v1', model: 'm', configured: true }, generation: { enabled: true, instructions: 'brief', maxLength: 200, fallback: { question: 'safe' } } })
   })
 
   it('loads persisted configuration after a server restart', async () => {
@@ -69,6 +99,14 @@ describe('YangLing service', () => {
     expect(ranged.status).toBe(206)
     expect(ranged.headers.get('content-range')).toBe('bytes 0-2/8')
     expect([...new Uint8Array(await ranged.arrayBuffer())]).toEqual([0x49, 0x44, 0x33])
+    const suffix = await fetch(`http://127.0.0.1:${new URL(base).port}${result.url}`, { headers: { Range: 'bytes=-3' } })
+    expect(suffix.status).toBe(206)
+    expect(suffix.headers.get('content-range')).toBe('bytes 5-7/8')
+    expect([...new Uint8Array(await suffix.arrayBuffer())]).toEqual([0, 0, 0])
+    const invalid = await fetch(`http://127.0.0.1:${new URL(base).port}${result.url}`, { headers: { Range: 'bytes=8-9' } })
+    expect(invalid.status).toBe(416)
+    expect(invalid.headers.get('content-range')).toBe('bytes */8')
+    expect((await fetch(`http://127.0.0.1:${new URL(base).port}/api/audio/missing.mp3`)).status).toBe(404)
   })
 
   it('rejects invalid audio signatures and unreviewed sources', async () => {
@@ -78,6 +116,20 @@ describe('YangLing service', () => {
     const generated = await (await fetch(`${base}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'question', question: '白露嗓子干' }) })).json()
     expect(generated.generated).toBe(false)
     expect(generated.sources).toEqual([])
+  })
+
+  it('exposes unreviewed research separately and uses it only for question discovery', async () => {
+    const { base } = await start()
+    const empty = await (await fetch(`${base}/research`)).json()
+    expect(empty.stats.papers).toBeGreaterThan(0)
+    expect(empty.sources).toEqual([])
+    const research = await (await fetch(`${base}/research?q=${encodeURIComponent('睡眠不好')}`)).json()
+    expect(research.sources[0]).toMatchObject({ reviewed: false, kind: 'research' })
+    const question = await (await fetch(`${base}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'question', question: '睡眠不好' }) })).json()
+    expect(question).toMatchObject({ lines: ['找到相关研究资料，可展开知识依据查看原文。'], generated: false, reason: '研究资料原文，未作个体建议' })
+    expect(question.sources[0]).toMatchObject({ reviewed: false, kind: 'research' })
+    const card = await (await fetch(`${base}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'breath', question: '睡眠不好' }) })).json()
+    expect(card.sources).toEqual([])
   })
 
   it('uses only reviewed matches and validates citations from injected upstream fetcher', async () => {
@@ -112,6 +164,17 @@ describe('YangLing service', () => {
     expect(prompts.sort()).toEqual(expect.arrayContaining(kinds.map(kind => expect.stringContaining(kind))))
   })
 
+  it('rate limits distinct proxy clients independently when nginx connects over loopback', async () => {
+    const upstream = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: '请参考建议。[1]' } }] }), { status: 200 }))
+    const { base } = await start({ fetcher: upstream, resolveHost: async () => ['93.184.216.34'] })
+    await fetch(`${base}/admin/config`, { method: 'PUT', headers: auth, body: JSON.stringify({ llm: { apiKey: 'k', baseUrl: 'https://llm.example.net/v1', model: 'm' }, generation: { enabled: true }, knowledge: [{ title: '呼吸', keywords: '呼吸', answer: '慢慢呼吸。', source: '指南', reviewed: true }], courses: [] }) })
+    for (let index = 1; index <= 13; index++) {
+      const result = await (await fetch(`${base}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Real-IP': `198.51.100.${index}` }, body: JSON.stringify({ kind: 'breath', question: '呼吸' }) })).json()
+      expect(result.generated).toBe(true)
+    }
+    expect(upstream).toHaveBeenCalledTimes(13)
+  })
+
   it('falls back when an upstream response exceeds the bounded payload size', async () => {
     const upstream = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: `建议[1]${'x'.repeat(70000)}` } }] }), { status: 200 }))
     const { base } = await start({ fetcher: upstream, resolveHost: async () => ['93.184.216.34'] })
@@ -132,5 +195,25 @@ describe('YangLing service', () => {
     try { await uploadAudio(new File(['RIFFxxxxWAVE'], '养生音频.wav', { type: '' }), 't') } finally { globalThis.fetch = originalFetch }
     expect(mocked.mock.calls[0][1].headers['X-Filename']).toBe(encodeURIComponent('养生音频.wav'))
     expect(mocked.mock.calls[0][1].headers['Content-Type']).toBe('audio/wav')
+  })
+
+  it('keeps audio uploads alive beyond the default 12 second request timeout', async () => {
+    vi.useFakeTimers()
+    let resolveFetch
+    const mocked = vi.fn((_url, options) => new Promise(resolve => {
+      resolveFetch = () => resolve(new Response(JSON.stringify({ url: '/api/audio/a.wav', name: 'a.wav' }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+      expect(options.signal.aborted).toBe(false)
+    }))
+    vi.stubGlobal('fetch', mocked)
+    try {
+      const pending = uploadAudio(new File(['RIFFxxxxWAVE'], 'a.wav', { type: 'audio/wav' }), 't')
+      await vi.advanceTimersByTimeAsync(13000)
+      expect(mocked.mock.calls[0][1].signal.aborted).toBe(false)
+      resolveFetch()
+      await expect(pending).resolves.toMatchObject({ name: 'a.wav' })
+    } finally {
+      vi.unstubAllGlobals()
+      vi.useRealTimers()
+    }
   })
 })

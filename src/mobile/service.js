@@ -16,8 +16,8 @@ export function apiUrl(path = '') {
   return `${baseUrl()}${value}`
 }
 
-async function request(path, options = {}) {
-  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 12000)
+async function request(path, options = {}, timeoutMs = 12000) {
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
     const response = await fetch(apiUrl(path), { ...options, signal: options.signal || controller.signal })
     const payload = await response.json().catch(() => ({}))
@@ -43,7 +43,7 @@ export async function uploadAudio(file, token) {
   const extension = file.name?.split('.').pop()?.toLowerCase()
   const aliases = { wav: 'audio/wav', wave: 'audio/wav', mp3: 'audio/mpeg', m4a: 'audio/mp4', mp4: 'audio/mp4', ogg: 'audio/ogg', oga: 'audio/ogg' }
   const type = aliases[extension] || ({ 'audio/x-wav': 'audio/wav', 'audio/wave': 'audio/wav', 'audio/x-m4a': 'audio/mp4' }[file.type] || file.type || 'application/octet-stream')
-  const result = await request('/api/admin/audio', { method: 'POST', headers: { ...tokenHeaders(token), 'Content-Type': type, 'X-Filename': encodeURIComponent(file.name || 'audio') }, body: file })
+  const result = await request('/api/admin/audio', { method: 'POST', headers: { ...tokenHeaders(token), 'Content-Type': type, 'X-Filename': encodeURIComponent(file.name || 'audio') }, body: file }, 120000)
   return { ...result, url: result.url?.startsWith('/api/audio/') ? apiUrl(result.url) : result.url }
 }
 export async function generateKnowledge(kind, question) {

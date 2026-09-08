@@ -3,9 +3,11 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { mkdir, open, readFile, rename, stat, writeFile } from 'node:fs/promises'
 import { extname, join, resolve, sep } from 'node:path'
 import { lookup } from 'node:dns/promises'
+import { isIP } from 'node:net'
 import { normalizeConfig, DEFAULT_CONFIG, findKnowledgeMatches } from '../src/mobile/config.js'
 import { buildLlmRequest } from '../src/mobile/llm.js'
 import { makeAnswer, makePlan } from '../src/mobile/model.js'
+import { researchStats, searchResearch } from './research.mjs'
 
 const MAX_JSON = 256 * 1024
 const MAX_AUDIO = 20 * 1024 * 1024
@@ -62,6 +64,11 @@ async function readJsonBounded(response, max = 64 * 1024) {
 function fallback(config, kind, reason, extra = {}) {
   return { lines: [String(config.generation.fallback[kind] || config.generation.fallback.question).slice(0, config.generation.maxLength)], sources: [], generated: false, reason: FALLBACK_REASON[reason], ...extra }
 }
+function isLoopback(ip = '') { return /^(?:127\.|::1$|::ffff:127\.)/.test(ip) }
+function clientAddress(req) {
+  const proxyAddress = String(req.headers['x-real-ip'] || '').trim()
+  return isLoopback(req.socket.remoteAddress) && isIP(proxyAddress) ? proxyAddress : req.socket.remoteAddress || 'unknown'
+}
 
 export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR || join(process.cwd(), 'data'), adminToken = process.env.YANGLING_ADMIN_TOKEN || '', fetcher = fetch, resolveHost = async host => (await lookup(host, { all: true })).map(x => x.address) } = {}) {
   const configPath = join(dataDir, 'config.json'), audioDir = join(dataDir, 'audio')
@@ -78,13 +85,17 @@ export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR |
   return http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost'); const origin = req.headers.origin
-      if (origin && (/^https?:\/\/localhost(?::\d+)?$/.test(origin) || origin === 'https://yangling.entermodetwo.com' || origin === 'https://rfdiosuao.github.io' || /^https?:\/\/127\.0\.0\.1(?::5173)?$/.test(origin))) {
+      if (origin && (/^https?:\/\/localhost(?::5173)?$/.test(origin) || origin === 'https://yangling.entermodetwo.com' || origin === 'https://rfdiosuao.github.io' || /^https?:\/\/127\.0\.0\.1:5173$/.test(origin))) {
         res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin'); res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Filename'); res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, POST, OPTIONS')
       }
       if (req.method === 'OPTIONS') return res.writeHead(origin && res.getHeader('Access-Control-Allow-Origin') ? 204 : 403).end()
       if (!url.pathname.startsWith('/api/')) return json(res, 404, { error: 'not found' })
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true })
       if (req.method === 'GET' && url.pathname === '/api/config') { res.setHeader('Cache-Control', 'no-store'); return json(res, 200, safeConfig(await load())) }
+      if (req.method === 'GET' && url.pathname === '/api/research') {
+        const question = String(url.searchParams.get('q') || '').slice(0, 1000)
+        return json(res, 200, { stats: researchStats(), sources: question ? searchResearch(question) : [] })
+      }
       const admin = url.pathname.startsWith('/api/admin/')
       if (admin && !equalToken((req.headers.authorization || '').replace(/^Bearer\s+/i, ''), adminToken)) return json(res, 401, { error: 'unauthorized' })
       if (req.method === 'GET' && url.pathname === '/api/admin/config') return json(res, 200, safeConfig(await load()))
@@ -100,9 +111,19 @@ export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR |
       if (req.method === 'GET' && url.pathname.startsWith('/api/audio/')) {
         const name = decodeURIComponent(url.pathname.slice('/api/audio/'.length)); const path = resolve(audioDir, name)
         if (!name || name.includes('/') || name.includes('\\') || !path.startsWith(resolve(audioDir) + sep)) return json(res, 404, { error: 'not found' })
-        const info = await stat(path); let start = 0, end = info.size - 1, status = 200
-        if (req.headers.range) { const match = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range); if (!match) return res.writeHead(416, { 'Content-Range': `bytes */${info.size}` }).end(); start = +match[1]; end = match[2] ? Math.min(+match[2], end) : end; if (start > end) return res.writeHead(416, { 'Content-Range': `bytes */${info.size}` }).end(); status = 206 }
-        const file = await open(path, 'r'); const output = Buffer.alloc(end - start + 1); await file.read(output, 0, output.length, start); await file.close()
+        let info
+        try { info = await stat(path) } catch (error) { if (error.code === 'ENOENT') return json(res, 404, { error: 'not found' }); throw error }
+        let start = 0, end = info.size - 1, status = 200
+        if (req.headers.range) {
+          const match = /^bytes=(?:(\d+)-(\d*)|-(\d+))$/.exec(req.headers.range)
+          if (!match) return res.writeHead(416, { 'Content-Range': `bytes */${info.size}` }).end()
+          if (match[3] !== undefined) { const length = +match[3]; if (!length) return res.writeHead(416, { 'Content-Range': `bytes */${info.size}` }).end(); start = Math.max(0, info.size - length) }
+          else { start = +match[1]; end = match[2] ? Math.min(+match[2], end) : end }
+          if (start >= info.size || start > end) return res.writeHead(416, { 'Content-Range': `bytes */${info.size}` }).end()
+          status = 206
+        }
+        const file = await open(path, 'r'); const output = Buffer.alloc(end - start + 1)
+        try { await file.read(output, 0, output.length, start) } finally { await file.close() }
         res.writeHead(status, { 'Content-Type': Object.entries(AUDIO_TYPES).find(([, e]) => e === extname(name))?.[0] || 'application/octet-stream', 'Accept-Ranges': 'bytes', 'Content-Length': output.length, ...(status === 206 ? { 'Content-Range': `bytes ${start}-${end}/${info.size}` } : {}) }); return res.end(output)
       }
       if (req.method === 'POST' && url.pathname === '/api/generate') {
@@ -113,11 +134,20 @@ export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR |
         const config = await load()
         const keywords = { cup: '饮水 茶 饮品', move: '运动 舒展 肩颈 八段锦', breath: '呼吸 放松 压力', question: '' }[kind]
         const matches = findKnowledgeMatches(`${question} ${keywords}`, config.knowledge.filter(x => x.reviewed && x.answer && x.enabled !== false), 3)
-        if (!matches.length) return json(res, 200, fallback(config, kind, 'no_sources'))
+        if (!matches.length) {
+          const research = kind === 'question' ? searchResearch(question) : []
+          if (research.length) return json(res, 200, { lines: ['找到相关研究资料，可展开知识依据查看原文。'], sources: research, generated: false, reason: '研究资料原文，未作个体建议' })
+          return json(res, 200, fallback(config, kind, 'no_sources'))
+        }
         if (kind === 'question' && (!config.generation.enabled || !config.llm.apiKey || !config.llm.baseUrl || !config.llm.model)) return json(res, 200, { lines: matches.map(x => x.answer), sources: sourcesFor(matches), generated: false, reason: '返回已审核知识原文' })
         if (!config.generation.enabled) return json(res, 200, fallback(config, kind, 'disabled'))
         if (!config.llm.apiKey || !config.llm.baseUrl || !config.llm.model) return json(res, 200, fallback(config, kind, 'unconfigured'))
-        const client = req.socket.remoteAddress || 'unknown', now = Date.now(), recent = (requestTimes.get(client) || []).filter(time => now - time < 60000)
+        const client = clientAddress(req), now = Date.now()
+        for (const [address, times] of requestTimes) {
+          const live = times.filter(time => now - time < 60000)
+          if (live.length) requestTimes.set(address, live); else requestTimes.delete(address)
+        }
+        const recent = requestTimes.get(client) || []
         if (recent.length >= 12 || upstreamActive >= 3) return json(res, 200, fallback(config, kind, 'upstream'))
         recent.push(now); requestTimes.set(client, recent)
         try {
