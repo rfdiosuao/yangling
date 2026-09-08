@@ -3,6 +3,8 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createYanglingServer } from '../server/app.mjs'
+import { Capacitor } from '@capacitor/core'
+import { apiUrl, uploadAudio } from '../src/mobile/service.js'
 
 const running = []
 async function start(options = {}) {
@@ -24,7 +26,10 @@ describe('YangLing service', () => {
     const { base } = await start()
     expect((await fetch(`${base}/health`)).status).toBe(200)
     expect((await fetch(`${base}/admin/config`)).status).toBe(401)
-    const publicConfig = await (await fetch(`${base}/config`)).json()
+    const publicResponse = await fetch(`${base}/config`, { headers: { Origin: 'https://rfdiosuao.github.io' } })
+    expect(publicResponse.headers.get('cache-control')).toBe('no-store')
+    expect(publicResponse.headers.get('access-control-allow-origin')).toBe('https://rfdiosuao.github.io')
+    const publicConfig = await publicResponse.json()
     expect(publicConfig.llm.apiKey).toBeUndefined()
     expect(publicConfig.llm.configured).toBe(false)
     expect(publicConfig.knowledge.every(item => item.reviewed === false)).toBe(true)
@@ -84,5 +89,48 @@ describe('YangLing service', () => {
     expect(result).toMatchObject({ generated: true, lines: ['每小时起身活动。[1]'] })
     expect(result.sources[0]).toMatchObject({ title: '办公建议', reviewed: true })
     expect(upstream).toHaveBeenCalledOnce()
+  })
+
+  it('returns reviewed original knowledge for questions without card generation', async () => {
+    const { base } = await start()
+    await fetch(`${base}/admin/config`, { method: 'PUT', headers: auth, body: JSON.stringify({ generation: { enabled: false }, knowledge: [{ title: '久坐', keywords: '久坐', answer: '每小时起身一次。', source: '已审核指南', reviewed: true }], courses: [] }) })
+    const result = await (await fetch(`${base}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'question', question: '久坐怎么办' }) })).json()
+    expect(result).toMatchObject({ lines: ['每小时起身一次。'], generated: false, sources: [{ title: '已审核指南', reviewed: true }] })
+  })
+
+  it('allows the three home cards concurrently and includes distinct kind intent', async () => {
+    const prompts = []
+    const upstream = vi.fn(async (_url, options) => {
+      prompts.push(JSON.parse(options.body).messages.at(-1).content)
+      return new Response(JSON.stringify({ choices: [{ message: { content: '请参考建议。[1]' } }] }), { status: 200 })
+    })
+    const { base } = await start({ fetcher: upstream, resolveHost: async () => ['93.184.216.34'] })
+    await fetch(`${base}/admin/config`, { method: 'PUT', headers: auth, body: JSON.stringify({ llm: { apiKey: 'k', baseUrl: 'https://llm.example.net/v1', model: 'm' }, generation: { enabled: true }, knowledge: [{ title: '日常', keywords: '饮水,舒展,呼吸', answer: '请参考建议。', source: '指南', reviewed: true }], courses: [] }) })
+    const kinds = ['cup', 'move', 'breath']
+    const results = await Promise.all(kinds.map(kind => fetch(`${base}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, question: '今天很累' }) }).then(r => r.json())))
+    expect(results.every(x => x.generated)).toBe(true)
+    expect(prompts.sort()).toEqual(expect.arrayContaining(kinds.map(kind => expect.stringContaining(kind))))
+  })
+
+  it('falls back when an upstream response exceeds the bounded payload size', async () => {
+    const upstream = vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: `建议[1]${'x'.repeat(70000)}` } }] }), { status: 200 }))
+    const { base } = await start({ fetcher: upstream, resolveHost: async () => ['93.184.216.34'] })
+    await fetch(`${base}/admin/config`, { method: 'PUT', headers: auth, body: JSON.stringify({ llm: { apiKey: 'k', baseUrl: 'https://llm.example.net/v1', model: 'm' }, generation: { enabled: true }, knowledge: [{ title: '呼吸', keywords: '呼吸', answer: '慢慢呼吸。', source: '指南', reviewed: true }], courses: [] }) })
+    const result = await (await fetch(`${base}/generate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'breath', question: '呼吸' }) })).json()
+    expect(result).toMatchObject({ generated: false, sources: [] })
+  })
+
+  it('encodes non-ASCII upload filenames and recognizes native HTTPS localhost', async () => {
+    const native = vi.spyOn(Capacitor, 'isNativePlatform').mockReturnValue(true)
+    vi.stubGlobal('location', new URL('https://localhost/'))
+    expect(apiUrl('/api/config')).toBe('https://yangling.entermodetwo.com/api/config')
+    native.mockRestore()
+    vi.unstubAllGlobals()
+    const originalFetch = globalThis.fetch
+    const mocked = vi.fn(async (_url, options) => new Response(JSON.stringify({ url: '/api/audio/a.wav', name: 'a.wav' }), { status: 201, headers: { 'Content-Type': 'application/json' } }))
+    globalThis.fetch = mocked
+    try { await uploadAudio(new File(['RIFFxxxxWAVE'], '养生音频.wav', { type: '' }), 't') } finally { globalThis.fetch = originalFetch }
+    expect(mocked.mock.calls[0][1].headers['X-Filename']).toBe(encodeURIComponent('养生音频.wav'))
+    expect(mocked.mock.calls[0][1].headers['Content-Type']).toBe('audio/wav')
   })
 })

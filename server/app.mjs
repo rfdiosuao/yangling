@@ -50,13 +50,23 @@ async function assertSafeEndpoint(baseUrl, resolveHost) {
 function validateLines(lines, count) {
   return lines.length > 0 && lines.every(line => { const cites = [...line.matchAll(/\[(\d+)]/g)].map(m => +m[1]); return cites.length && cites.every(n => n >= 1 && n <= count) })
 }
+function sourcesFor(matches) { return matches.map(x => ({ title: x.source || x.title, body: x.answer, reviewed: true, ...(x.sourceUrl ? { sourceUrl: x.sourceUrl } : {}) })) }
+async function readJsonBounded(response, max = 64 * 1024) {
+  if (Number(response.headers?.get?.('content-length') || 0) > max) throw new Error('upstream response too large')
+  if (!response.body?.getReader) { const data = new Uint8Array(await response.arrayBuffer()); if (data.length > max) throw new Error('upstream response too large'); return JSON.parse(new TextDecoder().decode(data)) }
+  const reader = response.body.getReader(), chunks = []; let size = 0
+  while (true) { const { done, value } = await reader.read(); if (done) break; size += value.length; if (size > max) { await reader.cancel(); throw new Error('upstream response too large') } chunks.push(value) }
+  const data = new Uint8Array(size); let offset = 0; for (const chunk of chunks) { data.set(chunk, offset); offset += chunk.length }
+  return JSON.parse(new TextDecoder().decode(data))
+}
 function fallback(config, kind, reason, extra = {}) {
   return { lines: [String(config.generation.fallback[kind] || config.generation.fallback.question).slice(0, config.generation.maxLength)], sources: [], generated: false, reason: FALLBACK_REASON[reason], ...extra }
 }
 
 export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR || join(process.cwd(), 'data'), adminToken = process.env.YANGLING_ADMIN_TOKEN || '', fetcher = fetch, resolveHost = async host => (await lookup(host, { all: true })).map(x => x.address) } = {}) {
   const configPath = join(dataDir, 'config.json'), audioDir = join(dataDir, 'audio')
-  let upstreamActive = 0, nextUpstreamAt = 0
+  let upstreamActive = 0
+  const requestTimes = new Map()
   async function load() { try { return normalizeConfig(JSON.parse(await readFile(configPath, 'utf8'))) } catch (error) { if (error.code === 'ENOENT') return normalizeConfig(DEFAULT_CONFIG); throw error } }
   async function save(input) {
     const old = await load(), submitted = input?.llm || {}, next = normalizeConfig(input)
@@ -68,13 +78,13 @@ export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR |
   return http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://localhost'); const origin = req.headers.origin
-      if (origin && (/^https?:\/\/localhost(?::\d+)?$/.test(origin) || origin === 'https://yangling.entermodetwo.com' || /^https?:\/\/127\.0\.0\.1(?::5173)?$/.test(origin))) {
+      if (origin && (/^https?:\/\/localhost(?::\d+)?$/.test(origin) || origin === 'https://yangling.entermodetwo.com' || origin === 'https://rfdiosuao.github.io' || /^https?:\/\/127\.0\.0\.1(?::5173)?$/.test(origin))) {
         res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin'); res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Filename'); res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, POST, OPTIONS')
       }
       if (req.method === 'OPTIONS') return res.writeHead(origin && res.getHeader('Access-Control-Allow-Origin') ? 204 : 403).end()
       if (!url.pathname.startsWith('/api/')) return json(res, 404, { error: 'not found' })
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true })
-      if (req.method === 'GET' && url.pathname === '/api/config') return json(res, 200, safeConfig(await load()))
+      if (req.method === 'GET' && url.pathname === '/api/config') { res.setHeader('Cache-Control', 'no-store'); return json(res, 200, safeConfig(await load())) }
       const admin = url.pathname.startsWith('/api/admin/')
       if (admin && !equalToken((req.headers.authorization || '').replace(/^Bearer\s+/i, ''), adminToken)) return json(res, 401, { error: 'unauthorized' })
       if (req.method === 'GET' && url.pathname === '/api/admin/config') return json(res, 200, safeConfig(await load()))
@@ -100,24 +110,29 @@ export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR |
         if (!['cup', 'move', 'breath', 'question'].includes(kind)) return json(res, 400, { error: 'invalid kind' })
         const plan = makePlan(question), answer = makeAnswer(question)
         if (plan.urgent || answer.urgent) return json(res, 200, { lines: [plan.message || answer.lines[0]], sources: [], generated: false, reason: '安全提示优先' })
-        const config = await load(); if (!config.generation.enabled) return json(res, 200, fallback(config, kind, 'disabled'))
-        if (!config.llm.apiKey || !config.llm.baseUrl || !config.llm.model) return json(res, 200, fallback(config, kind, 'unconfigured'))
+        const config = await load()
         const keywords = { cup: '饮水 茶 饮品', move: '运动 舒展 肩颈 八段锦', breath: '呼吸 放松 压力', question: '' }[kind]
         const matches = findKnowledgeMatches(`${question} ${keywords}`, config.knowledge.filter(x => x.reviewed && x.answer && x.enabled !== false), 3)
         if (!matches.length) return json(res, 200, fallback(config, kind, 'no_sources'))
-        if (upstreamActive >= 2 || Date.now() < nextUpstreamAt) return json(res, 200, fallback(config, kind, 'upstream'))
+        if (kind === 'question' && (!config.generation.enabled || !config.llm.apiKey || !config.llm.baseUrl || !config.llm.model)) return json(res, 200, { lines: matches.map(x => x.answer), sources: sourcesFor(matches), generated: false, reason: '返回已审核知识原文' })
+        if (!config.generation.enabled) return json(res, 200, fallback(config, kind, 'disabled'))
+        if (!config.llm.apiKey || !config.llm.baseUrl || !config.llm.model) return json(res, 200, fallback(config, kind, 'unconfigured'))
+        const client = req.socket.remoteAddress || 'unknown', now = Date.now(), recent = (requestTimes.get(client) || []).filter(time => now - time < 60000)
+        if (recent.length >= 12 || upstreamActive >= 3) return json(res, 200, fallback(config, kind, 'upstream'))
+        recent.push(now); requestTimes.set(client, recent)
         try {
-          upstreamActive++; nextUpstreamAt = Date.now() + 250; await assertSafeEndpoint(config.llm.baseUrl, resolveHost)
+          upstreamActive++; await assertSafeEndpoint(config.llm.baseUrl, resolveHost)
           const context = matches.map((x, i) => `[${i + 1}] ${x.title}\n${x.answer}\n来源：${x.source}`).join('\n\n')
-          const request = buildLlmRequest({ ...config.llm, systemPrompt: `${config.llm.systemPrompt}\n${config.generation.instructions}` }, question, context)
+          const kindIntent = { cup: '为「一杯」卡片生成饮品或饮水建议', move: '为「一动」卡片生成轻缓活动建议', breath: '为「一息」卡片生成呼吸放松建议', question: '回答用户的知识问题' }[kind]
+          const request = buildLlmRequest({ ...config.llm, systemPrompt: `${config.llm.systemPrompt}\n${config.generation.instructions}` }, `[任务类型: ${kind}] ${kindIntent}。\n用户输入：${question}`, context)
           const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 10000)
           let response
-          try { response = await fetcher(request.url, { ...request.options, redirect: 'error', signal: controller.signal }) } finally { clearTimeout(timer) }
-          if (!response.ok) throw new Error('upstream failure')
-          const payload = await response.json(), text = String(payload?.choices?.[0]?.message?.content || '').slice(0, config.generation.maxLength)
+          let payload
+          try { response = await fetcher(request.url, { ...request.options, redirect: 'error', signal: controller.signal }); if (!response.ok) throw new Error('upstream failure'); payload = await readJsonBounded(response) } finally { clearTimeout(timer) }
+          const text = String(payload?.choices?.[0]?.message?.content || '').slice(0, config.generation.maxLength)
           const lines = text.split(/\n+/).map(x => x.replace(/^\s*(?:[-•]|\d+[.、])\s*/, '').trim()).filter(Boolean).slice(0, 5)
           if (!validateLines(lines, matches.length)) return json(res, 200, fallback(config, kind, 'invalid'))
-          return json(res, 200, { lines, sources: matches.map(x => ({ title: x.source || x.title, body: x.answer, reviewed: true, ...(x.sourceUrl ? { sourceUrl: x.sourceUrl } : {}) })), generated: true, reason: '已使用审核知识生成' })
+          return json(res, 200, { lines, sources: sourcesFor(matches), generated: true, reason: '已使用审核知识生成' })
         } catch { return json(res, 200, fallback(config, kind, 'upstream')) } finally { upstreamActive-- }
       }
       json(res, 404, { error: 'not found' })

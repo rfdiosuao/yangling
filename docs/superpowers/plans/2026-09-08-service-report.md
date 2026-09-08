@@ -34,3 +34,9 @@
 - 旧 `tests/mobile-config.test.js` 仍期待 `example.com` 视频有效且默认视频非空，与本任务的新明确契约相反；因任务文件边界禁止修改该旧测试，故保留由主任务统一更新。
 - 全量 `npm run build` 在并行开发中的 `MobileApp.jsx` 处因 `testNativeNotification` 尚未导出而失败，不属于本任务拥有文件。
 - SSRF 防护在请求前校验 DNS 解析结果并禁止重定向；如需彻底消除高级 DNS rebinding 窗口，生产环境还应用出站防火墙限制私有网段。
+
+## 集成回归修正
+
+- RED：`npx vitest run tests/service.test.js` 新增 3 项用例后失败，分别复现问答原文被开关阻断、三卡片并发被节流、中文文件名未编码。
+- GREEN：`npx vitest run tests/service.test.js` 通过 10 项，新增覆盖 Android native 基址、中文文件名/MIME 回退、三卡片并发与意图、问答原文、上游响应上限、GitHub Pages CORS 和 `no-store`。
+- 生成上游改为每客户每分钟 12 次、最大并发 3，首页三卡片可同时生成；超限仍安全回退。

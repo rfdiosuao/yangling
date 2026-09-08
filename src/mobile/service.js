@@ -1,10 +1,12 @@
+import { Capacitor } from '@capacitor/core'
+
 const PRODUCTION_API = 'https://yangling.entermodetwo.com'
 
 function baseUrl() {
   const configured = import.meta.env?.VITE_API_BASE
   if (configured) return configured.replace(/\/$/, '')
   if (typeof location === 'undefined') return PRODUCTION_API
-  const native = location.protocol === 'capacitor:' || location.protocol === 'file:'
+  const native = Capacitor.isNativePlatform()
   const pages = location.hostname.endsWith('.github.io')
   return native || pages ? PRODUCTION_API : ''
 }
@@ -38,7 +40,10 @@ export async function fetchPublicConfig() { return absoluteMedia(await request('
 export async function fetchAdminConfig(token) { return absoluteMedia(await request('/api/admin/config', { headers: tokenHeaders(token) })) }
 export async function publishConfig(config, token) { return absoluteMedia(await request('/api/admin/config', { method: 'PUT', headers: tokenHeaders(token, true), body: JSON.stringify(config) })) }
 export async function uploadAudio(file, token) {
-  const result = await request('/api/admin/audio', { method: 'POST', headers: { ...tokenHeaders(token), 'Content-Type': file.type, 'X-Filename': file.name }, body: file })
+  const extension = file.name?.split('.').pop()?.toLowerCase()
+  const aliases = { wav: 'audio/wav', wave: 'audio/wav', mp3: 'audio/mpeg', m4a: 'audio/mp4', mp4: 'audio/mp4', ogg: 'audio/ogg', oga: 'audio/ogg' }
+  const type = aliases[extension] || ({ 'audio/x-wav': 'audio/wav', 'audio/wave': 'audio/wav', 'audio/x-m4a': 'audio/mp4' }[file.type] || file.type || 'application/octet-stream')
+  const result = await request('/api/admin/audio', { method: 'POST', headers: { ...tokenHeaders(token), 'Content-Type': type, 'X-Filename': encodeURIComponent(file.name || 'audio') }, body: file })
   return { ...result, url: result.url?.startsWith('/api/audio/') ? apiUrl(result.url) : result.url }
 }
 export async function generateKnowledge(kind, question) {
