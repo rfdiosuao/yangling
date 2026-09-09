@@ -4,12 +4,27 @@
  * - notificationclick：点击通知聚焦/直达养生页
  * 部署到 GitHub Pages 子路径 /yangling/，全部用相对路径，避免 base 差异。
  */
-const VERSION = 'yangling-v3-20260908'
+const VERSION = 'yangling-v4-pet-20260909'
 const ASSET_CACHE = `${VERSION}-assets`
+async function cacheCompanion(){
+  try{
+    const response=await fetch(new URL('companion-assets.json',self.registration.scope),{cache:'no-cache'})
+    if(!response.ok)return
+    const files=await response.json(),cache=await caches.open(ASSET_CACHE)
+    await Promise.all(files.map(async file=>{
+      if(!/^(pet\/[\w-]+\.png|audio\/companion\/v1\/[\w-]+\.mp3)$/.test(file))return
+      const url=new URL(file,self.registration.scope)
+      if(await cache.match(url))return
+      try{const r=await fetch(url);if(r.ok&&/^(audio\/|image\/|application\/octet-stream)/.test(r.headers.get('Content-Type')||''))await cache.put(url,r)}catch{}
+    }))
+  }catch{}
+}
 
 self.addEventListener('install', (event) => {
+  event.waitUntil(cacheCompanion())
   self.skipWaiting()
 })
+self.addEventListener('message',event=>{if(event.data?.type==='CACHE_COMPANION')event.waitUntil(cacheCompanion())})
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(

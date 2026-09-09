@@ -4,27 +4,27 @@ import {EXERCISES,scorePose} from './model.js'
 import {validateVideoUrl} from './config.js'
 import {Sheet} from './controls.jsx'
 import BrandIcon from './BrandIcons.jsx'
-import {speak,stopSpeech} from './speech.js'
-import {createVoiceCoach} from './voice-coach.js'
+import {speakPet,stopSpeech} from './speech.js'
+import {createPetCoach} from './companion.js'
 export default function MotionScreen({mode,courses,notify,onComplete}){
   const options=courses.filter(c=>c.enabled)
   const [chosen,setChosen]=useState(null),[guide,setGuide]=useState(false),[camera,setCamera]=useState('off'),[result,setResult]=useState(null),[detail,setDetail]=useState(false)
   const video=useRef(null),canvas=useRef(null),stream=useRef(null),frame=useRef(null),generation=useRef(0)
   const [voiceEnabled,setVoiceEnabled]=useState(true)
-  const coach=useRef(createVoiceCoach()),voiceBusy=useRef(false)
+  const coach=useRef(createPetCoach()),voiceBusy=useRef(false)
   const latestResult=useRef(result)
   latestResult.current=result
   useEffect(()=>{
     if(camera!=='live'||!voiceEnabled)return
     const timer=setInterval(()=>{
-      if(voiceBusy.current)return
+      if(voiceBusy.current||document.visibilityState!=='visible')return
       const message=coach.current(latestResult.current,performance.now())
       if(!message)return
-      voiceBusy.current=true;speak(message).catch(()=>{setVoiceEnabled(false);notify('语音暂不可用，请检查手机中文语音引擎。')}).finally(()=>{voiceBusy.current=false})
+      voiceBusy.current=true;speakPet(message).catch(()=>{setVoiceEnabled(false);notify('语音暂不可用，请检查手机中文语音引擎。')}).finally(()=>{voiceBusy.current=false})
     },500)
     return()=>clearInterval(timer)
   },[camera,voiceEnabled])
-  useEffect(()=>{if(camera!=='live'||!voiceEnabled){coach.current=createVoiceCoach();stopSpeech()}},[camera,voiceEnabled])
+  useEffect(()=>{coach.current=createPetCoach();stopSpeech()},[camera,voiceEnabled,chosen])
   useEffect(()=>()=>{stopSpeech()},[])
   const course=options.find(c=>c.id===chosen)||options[0]
   const index=EXERCISES.findIndex(e=>e.name===course?.moveName),exercise=EXERCISES[index]

@@ -63,5 +63,5 @@ export function scorePose(points, exercise) {
     : true
   const armGood = exercise === 0 ? height > .8 : exercise === 1 ? armLevel < .22 : level < .12
   const confidenceBonus = sides.length === 2 ? 0 : -5
-  return { score: Math.max(0, Math.round(55 + (armGood ? 25 : 8) + (level < .12 ? 10 : 3) + (aligned ? 10 : 2) + confidenceBonus)), armGood, relaxed: level < .12, aligned, partial: sides.length === 1, hint: armGood ? (sides.length === 1 ? '已识别一侧动作，尽量让另一侧也入镜' : '动作到位，保持自然呼吸') : EXERCISES[exercise].hint }
+  return { score: Math.max(0, Math.round(55 + (armGood ? 25 : 8) + (level < .12 ? 10 : 3) + (aligned ? 10 : 2) + confidenceBonus)), armGood, relaxed: level < .12, aligned, partial: sides.length === 1, correction:exercise===1?'pose_elbows_level':exercise===2?'pose_shoulders_01':'pose_arms_01', hint: armGood ? (sides.length === 1 ? '已识别一侧动作，尽量让另一侧也入镜' : '动作到位，保持自然呼吸') : EXERCISES[exercise].hint }
 }

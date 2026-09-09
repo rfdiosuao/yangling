@@ -1,0 +1,10 @@
+[
+ "pet/yangling-companion-v1.png", "pet/yangling-happy-v1.png", "pet/yangling-rest-v1.png",
+ "audio/companion/v1/pet_hello_01.mp3",
+ "audio/companion/v1/pose_good_01.mp3", "audio/companion/v1/pose_good_02.mp3",
+ "audio/companion/v1/pose_excellent_01.mp3", "audio/companion/v1/pose_improved_01.mp3",
+ "audio/companion/v1/pose_in_frame_01.mp3", "audio/companion/v1/pose_arms_01.mp3",
+ "audio/companion/v1/pose_shoulders_01.mp3", "audio/companion/v1/pose_back_01.mp3",
+ "audio/companion/v1/done_cup_01.mp3", "audio/companion/v1/done_move_01.mp3",
+ "audio/companion/v1/done_breath_01.mp3", "audio/companion/v1/done_day_01.mp3"
+]
