@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Check, Database, FilmStrip, GearSix, Plus, Trash, X } from '@phosphor-icons/react'
 import { DIALECTS, LLM_PRESETS, KNOWLEDGE_FORMATS, KNOWLEDGE_TEMPLATE, normalizeConfig, parseKnowledgeFile, validateVideoUrl } from './config.js'
-import {fetchAdminConfig,publishConfig,uploadAudio} from './service.js'
+import {fetchAdminConfig,publishConfig,uploadAudio,apiUrl} from './service.js'
 
 export default function AdminPanel({ config, onSave, onClose }) {
   const [draft, setDraft] = useState(() => normalizeConfig(config))
@@ -10,6 +10,8 @@ export default function AdminPanel({ config, onSave, onClose }) {
   const [knowledgeFormat, setKnowledgeFormat] = useState('json')
   const [importError, setImportError] = useState('')
   const [token,setToken]=useState(''),[authenticated,setAuthenticated]=useState(false),[busy,setBusy]=useState(false)
+  const [research,setResearch]=useState(null)
+  useEffect(()=>{fetch(apiUrl('/api/research')).then(r=>r.ok?r.json():null).then(r=>setResearch(r?.stats||null)).catch(()=>{})},[])
   const panel = useRef(null)
   const knowledgeFile = useRef(null)
   useEffect(() => {
@@ -53,8 +55,9 @@ export default function AdminPanel({ config, onSave, onClose }) {
   function setCourse(index, key, value) { setDraft(current => ({ ...current, courses: current.courses.map((item, i) => i === index ? { ...item, [key]: value } : item) })) }
   async function login(){setBusy(true);setError('');try{setDraft(normalizeConfig(await fetchAdminConfig(token)));setAuthenticated(true)}catch{setError('管理凭证无效或服务暂未连接。')}finally{setBusy(false)}}
   function setAudio(index,key,value){setDraft(current=>({...current,audio:current.audio.map((item,i)=>i===index?{...item,[key]:value}:item)}))}
-  async function upload(event,index){const file=event.target.files?.[0];if(!file)return;setBusy(true);setError('');try{const item=await uploadAudio(file,token);setAudio(index,'url',item.url);setAudio(index,'name',file.name.replace(/\.[^.]+$/,''))}catch(e){setError(e.message||'音频上传失败。')}finally{setBusy(false);event.target.value=''}}
+  async function upload(event,index){const input=event.target,file=input.files?.[0],id=draft.audio[index]?.id;if(!file||!id)return;setBusy(true);setError('');try{const item=await uploadAudio(file,token);setDraft(c=>({...c,audio:c.audio.map(a=>a.id===id?{...a,url:item.url,name:file.name.replace(/\.[^.]+$/,'')}:a)}))}catch(e){setError(e.message||'音频上传失败。')}finally{setBusy(false);input.value=''}}
   async function save() {
+    if(draft.audio.some(item=>item.enabled&&(!item.name.trim()||!(/^(https:\/\/|\/api\/audio\/)/.test(item.url))))){setError('启用的音频需要名称和 HTTPS 音频链接，或先上传文件。');setSection('audio');return}
     const invalid = draft.courses.find(item => item.videoUrl && !validateVideoUrl(item.videoUrl))
     if (invalid) { setError(`“${invalid.moveName || invalid.name}”需要填写 http 或 https 视频链接。`); setSection('courses'); return }
     if (!draft.llm.provider.trim() || !draft.llm.model.trim()) { setError('LLM 服务商和模型名称需要填写。'); setSection('llm'); return }
@@ -85,6 +88,7 @@ export default function AdminPanel({ config, onSave, onClose }) {
           <label>默认语音<select value={draft.dialect} onChange={e => setDraft(current => ({ ...current, dialect: e.target.value }))}>{DIALECTS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
         </div>}
         {section === 'knowledge' && <div className="ylm-admin-list">
+          {research&&<p className="yl-source-label">内置研究资料：{research.papers} 篇 / {research.chunks} 个切片。问答可检索原文；不自动标记为个体养生建议的审核依据。</p>}
           <div className="ylm-knowledge-import">
             <div><strong>知识库导入</strong><small>导入后统一转成标题、关键词、答案、来源、标签，RAG 只从这些条目取依据。</small></div>
             <label>格式<select value={knowledgeFormat} onChange={e => setKnowledgeFormat(e.target.value)}>{KNOWLEDGE_FORMATS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>

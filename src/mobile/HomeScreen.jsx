@@ -11,15 +11,16 @@ export default function HomeScreen({mode,config,notify,onMove,completed,onComple
   const [text,setText]=useState(''),[plan,setPlan]=useState(()=>makePlan('')),[selected,setSelected]=useState(null),[busy,setBusy]=useState(false)
   const sequence=useRef(0)
   useEffect(()=>()=>{sequence.current++},[])
-  useEffect(()=>{if(initialRitual)setSelected(makePlan('').cards.find(c=>c.type===initialRitual))},[initialRitual])
+  useEffect(()=>{setPlan(current=>current.urgent?current:{...current,cards:current.cards.map(card=>card.generated?card:{...card,detail:config.generation?.fallback?.[card.type]||card.detail})})},[config.generation?.fallback])
+  useEffect(()=>{if(initialRitual&&!plan.urgent)setSelected(plan.cards.find(c=>c.type===(initialRitual.type||initialRitual)))},[initialRitual])
   async function generate(value=text){
     if(!value.trim()){notify('先说说你现在的感受吧。');return}
-    setText(value);const next=makePlan(value),seq=++sequence.current;setPlan(next)
+    setText(value);const next=makePlan(value),seq=++sequence.current;if(next.cards)next.cards=next.cards.map(card=>({...card,detail:config.generation?.fallback?.[card.type]||card.detail}));setPlan(next)
     if(next.urgent){setBusy(false);return}
     if(!config.generation?.enabled)return
     setBusy(true)
     const cards=await Promise.all(next.cards.map(async card=>{
-      try{const result=await generateKnowledge(card.type,value);return {...card,detail:result.lines.join('\n'),sources:result.sources,generated:result.generated,reason:result.reason}}
+      try{const result=await generateKnowledge(card.type,value);return {...card,subtitle:result.generated?result.lines[0].replace(/\[\d+\]/g,'').slice(0,36):card.subtitle,detail:result.lines.join('\n'),sources:result.sources,generated:result.generated,reason:result.reason}}
       catch{return {...card,detail:config.generation?.fallback?.[card.type]||card.detail,reason:'服务暂不可用，显示基础建议'}}
     }))
     if(seq===sequence.current){setPlan({...next,cards});setBusy(false)}

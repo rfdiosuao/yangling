@@ -29,5 +29,5 @@ export function VoiceButton({onText,notify,dialect='mandarin',large=false}){
     rec.onerror=e=>{setListening(false);notify(e.error==='not-allowed'?'请允许麦克风权限，也可以直接打字。':'没有听清，请再说一次或打字。')}
     try{rec.start()}catch{notify('语音暂不可用，请直接打字。')}
   }
-  return <button type="button" className={large?'yl-voice-large':'ylm-voice compact'} aria-label={listening?'结束语音输入':'语音输入'} onClick={listen}><Microphone size={large?28:25}/>{large&&<span>{listening?'正在听，点一下结束':'点一下，说问题'}</span>}</button>
+  return <button type="button" className={`${large?'yl-voice-large':'ylm-voice compact'} ${listening?'listening':''}`} aria-label={listening?'结束语音输入':'语音输入'} onClick={listen}><Microphone size={large?28:25}/>{(large||listening)&&<span role="status">{listening?(large?'正在听，点一下结束':'正在听'):'点一下，说问题'}</span>}</button>
 }

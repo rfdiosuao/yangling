@@ -13,6 +13,7 @@ export default function MotionScreen({mode,courses,notify,onComplete}){
   function stop(){generation.current++;cancelAnimationFrame(frame.current);stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;setCamera('off');setResult(null)}
   useEffect(()=>()=>{generation.current++;cancelAnimationFrame(frame.current);stream.current?.getTracks().forEach(t=>t.stop())},[])
   useEffect(()=>{if(chosen&&!options.some(c=>c.id===chosen)){stop();setChosen(null)}},[courses])
+  useEffect(()=>{if(mode==='parent'&&!chosen)stop()},[mode,chosen])
   async function start(){
     if(camera!=='off'){stop();return}
     if(index<0){notify('这个动作暂不支持识别，可以观看教学视频。');return}

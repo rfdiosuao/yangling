@@ -13,8 +13,8 @@ cp "$root/index.html" "$backup/index.html"
 cp "$root/sw.js" "$backup/sw.js"
 cp "$nginx_config" "$backup/nginx.conf"
 # Install assets before changing the entry document; retain old hashed assets.
-for dir in assets icons prototype mediapipe mediapipe-wasm; do
-  test ! -d "$stage/site/$dir" || cp -a "$stage/site/$dir/." "$root/$dir/"
+for dir in assets icons brand prototype mediapipe mediapipe-wasm; do
+  if [ -d "$stage/site/$dir" ]; then mkdir -p "$root/$dir"; cp -a "$stage/site/$dir/." "$root/$dir/"; chmod -R a+rX "$root/$dir"; fi
 done
 chmod -R a+rX "$root/assets" "$root/icons" "$root/prototype" "$root/mediapipe" "$root/mediapipe-wasm"
 install -m 644 "$stage/site/manifest.webmanifest" "$root/manifest.webmanifest"

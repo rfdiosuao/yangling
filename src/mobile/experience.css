@@ -38,4 +38,5 @@
 @media(max-height:720px){.ylm-page{padding-top:6px}.yl-season{margin-bottom:6px}.ylm-subtitle{margin-bottom:9px}.ylm-rituals{min-height:240px}.parent-mode .ylm-rituals{min-height:240px}.ylm-ritual strong{font-size:22px}.ylm-ritual{padding:10px 15px}.ylm-camera-view,.parent-mode .ylm-camera-view{min-height:140px}.ylm-header{min-height:calc(62px + var(--yl-safe-top));height:calc(62px + var(--yl-safe-top))}.yl-question-examples{gap:4px;margin:9px 0}.yl-question-examples button{min-height:36px}.ylm-knowledge .ylm-answer{min-height:120px!important}}
 @media(prefers-reduced-motion:reduce){.yl-breath-ring.running{animation:none}}
 .parent-mode .ylm-knowledge>.ylm-subtitle{display:none}
+.ylm-voice.listening{position:relative;color:#a44330}.ylm-state-action .ylm-voice.listening span{display:block;position:absolute;top:100%;right:0;background:#fff3eb;color:#a44330;border-radius:6px;padding:3px 5px;z-index:2}.ylm-voice.listening span{color:#a44330}.yl-voice-large.listening{background:#8e4935}
 .yl-migration{font-size:13px;color:#697b5f;margin:0 0 14px}.yl-migration button{min-height:40px;border:1px solid #d9e2d0;border-radius:10px;background:#fff;padding:8px}

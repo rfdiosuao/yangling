@@ -53,5 +53,7 @@ Files: src/mobile/reminder-schedule.js、native-notifications.js、ReminderSetti
 
 ## Progress
 
+2026-09-09：Task 1–4 的实现、测试、构建、上线和文档已完成；验收以 `docs/DELIVERY-1.2.md` 的具体记录为准。以下清单保留原始实施拆分，真实手机验证仍留给项目方；没有宣称完成真机锁屏/方言测试。额外补上 102 个来源 / 8,322 切片的原文检索、权限失效显示、家长版提醒两步操作，以及动效用 Logo 源素材和项目 Q&A。
+
 - 基线：838ee28；远端 main 是其祖先；工作区初始干净。
 - 服务任务由独立 agent 执行，主 agent 只改 UI、提醒与集成文件，避免共享文件冲突。

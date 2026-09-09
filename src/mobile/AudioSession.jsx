@@ -6,6 +6,7 @@ export default function AudioSession({tracks=[],onComplete}) {
   const [track,setTrack]=useState(()=>selectAudio(tracks)),[history,setHistory]=useState([])
   const [running,setRunning]=useState(false),[seconds,setSeconds]=useState(0),[volume,setVolume]=useState(.5),[error,setError]=useState('')
   const player=useRef(null),done=useRef(false)
+  useEffect(()=>{if(!track||!tracks.some(t=>t.id===track.id&&t.enabled!==false&&t.url===track.url)){player.current?.pause();setRunning(false);setTrack(selectAudio(tracks));setError('')}},[tracks])
   useEffect(()=>{if(player.current)player.current.volume=volume},[volume,track])
   useEffect(()=>{
     if(!running)return
@@ -16,7 +17,7 @@ export default function AudioSession({tracks=[],onComplete}) {
     if(seconds>=175&&player.current)player.current.volume=volume*Math.max(0,(180-seconds)/5)
     if(seconds>=180){setRunning(false);player.current?.pause();if(!done.current){done.current=true;onComplete()}}
   },[seconds,volume])
-  useEffect(()=>{const audio=player.current;return ()=>{audio?.pause();audio?.removeAttribute('src');audio?.load()}},[])
+  useEffect(()=>{const audio=player.current;if(audio&&track)audio.src=track.url;return ()=>{audio?.pause();audio?.removeAttribute('src');audio?.load()}},[track?.url])
   function toggle(){
     if(running){player.current?.pause();setRunning(false);return}
     if(seconds>=180){done.current=false;setSeconds(0);if(player.current){player.current.currentTime=0;player.current.volume=volume}}

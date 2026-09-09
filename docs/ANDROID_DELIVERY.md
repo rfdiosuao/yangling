@@ -1,5 +1,7 @@
 # Android 与网站交付（2026-09-08）
 
+> 这是 1.1 历史记录。新版下载、验证与部署说明见 [1.2 交付记录](./DELIVERY-1.2.md)，下方旧测试通知和截图 Logo 已由新版替换。
+
 线上网站：https://yangling.entermodetwo.com
 
 体验 APK：https://yangling.entermodetwo.com/downloads/yangling-v1.1-debug.apk
