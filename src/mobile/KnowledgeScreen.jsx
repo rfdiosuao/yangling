@@ -4,25 +4,25 @@ import {QUESTIONS,makeAnswer} from './model.js'
 import {findKnowledgeMatches,DIALECTS} from './config.js'
 import {generateKnowledge} from './service.js'
 import BrandIcon from './BrandIcons.jsx'
+import {speak,stopSpeech} from './speech.js'
 import {Sheet,VoiceButton} from './controls.jsx'
 export default function KnowledgeScreen({config,mode,notify,onDialect}){
   const [input,setInput]=useState(''),[question,setQuestion]=useState(''),[answer,setAnswer]=useState(null),[pending,setPending]=useState(false),[feedback,setFeedback]=useState(null),[sources,setSources]=useState(false),[speaking,setSpeaking]=useState(false)
   const sequence=useRef(0)
-  useEffect(()=>()=>{sequence.current++;window.speechSynthesis?.cancel()},[])
+  useEffect(()=>()=>{sequence.current++;stopSpeech()},[])
   async function ask(q=input){
     if(!q.trim())return notify('先说说你想问的问题吧。')
-    window.speechSynthesis?.cancel();setSpeaking(false)
+    stopSpeech();setSpeaking(false)
     const id=++sequence.current;setQuestion(q);setInput('');setFeedback(null);setPending(true)
     const risk=makeAnswer(q)
     if(risk.urgent){setAnswer(risk);setPending(false);return}
-    try{const result=await generateKnowledge('question',q);if(id===sequence.current)setAnswer({...result,title:result.generated?'根据知识库，可以这样做':result.sources.length?'知识库原文参考':'暂时没有足够依据'})}
+    try{const result=await generateKnowledge('question',q);if(id===sequence.current)setAnswer({...result,title:result.generated?(result.basis==='general'?'AI 通用建议':'根据知识库，可以这样做'):result.sources.length?'知识库原文参考':'暂时没有足够依据'})}
     catch{if(id===sequence.current){const matches=findKnowledgeMatches(q,config.knowledge).filter(s=>s.reviewed===true);setAnswer({title:matches.length?'知识库原文参考':'暂时没有足够依据',lines:matches.length?matches.map(s=>s.answer):['暂时无法查到相关知识，可以换个说法或稍后重试。'],sources:matches.map(s=>({title:s.source||s.title,body:s.answer}))});notify('服务暂未连接，未生成新回答。')}}
     finally{if(id===sequence.current)setPending(false)}
   }
-  function readAnswer(){
-    if(!window.speechSynthesis)return notify('此设备暂不支持朗读。')
-    window.speechSynthesis.cancel();if(speaking){setSpeaking(false);return}
-    const speech=new SpeechSynthesisUtterance(answer.lines.join('。').replace(/\[\d+\]/g,''));speech.lang='zh-CN';speech.rate=.85;speech.onend=()=>setSpeaking(false);speech.onerror=()=>setSpeaking(false);setSpeaking(true);window.speechSynthesis.speak(speech)
+  async function readAnswer(){
+    if(speaking){setSpeaking(false);await stopSpeech();return}
+    setSpeaking(true);try{await speak(answer.lines.join('。'))}catch{notify('朗读暂不可用，请检查手机中文语音引擎。')}finally{setSpeaking(false)}
   }
   return <main className="ylm-page ylm-knowledge"><h1>{mode==='parent'?'有问题，问一问':'养生说法靠不靠谱？'}</h1><p className="ylm-subtitle">查到依据，再给你简单回答。</p>
     {mode==='parent'&&<VoiceButton large onText={setInput} notify={notify} dialect={config.dialect}/>}

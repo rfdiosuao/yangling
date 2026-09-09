@@ -1,5 +1,6 @@
 /* Shared vector-first visual system. Warm accents, readable neutral surfaces. */
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;color:#263b34;background:#edf0ec}
+.yl-launch{position:fixed;inset:0;z-index:10000;background:#fff;display:grid;place-items:center;text-align:center;color:#283e33}.yl-launch>button{position:absolute;right:24px;top:calc(24px + env(safe-area-inset-top));border:1px solid #e3e8df;background:#fff;border-radius:24px;padding:12px 22px;font-size:15px;color:#526457}.yl-launch-ring{stroke-dasharray:1;animation:yl-draw .65s ease-out both}.yl-launch-leaf{animation:yl-reveal .55s .3s both;transform-origin:center}.yl-launch-name{animation:yl-reveal .5s .65s both}.yl-launch-name strong{display:block;font:52px/1.2 SimSun,serif}.yl-launch-name span{display:block;font:20px/1.6 Georgia,serif;letter-spacing:2px}.yl-launch-name p{font-size:13px;color:#8b6d39;letter-spacing:4px;margin-top:24px}@keyframes yl-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes yl-reveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .ylm-stage{background:#edf0ec}
 .ylm-app{--gold:#386654;--sand:#e3ece5;--border:#e1e6e1;background:#fafbf8;width:420px;min-height:0;max-height:940px}
 .ylm-header{align-items:center;padding-left:18px;padding-right:18px;gap:8px}

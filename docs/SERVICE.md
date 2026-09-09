@@ -26,7 +26,7 @@ YANGLING_ADMIN_TOKEN=replace-with-a-long-random-token
 
 配置读取不会返回 API key，只返回 `llm.configured`。更新时提交空 `apiKey` 会保留原密钥；提交 `clearApiKey: true` 才会清除。音频限制 20 MiB，服务会检查 MIME 类型和基本文件头。
 
-生成功能只使用已启用且已审核的匹配知识。无匹配依据、引用校验失败、超时或上游异常时都返回预先批准的回退文案；有依据不等于医学正确性保证。
+1.3 生成功能有两条路径：匹配已启用且已审核的知识时生成带引用回答；无匹配且模型已启用和配置时，生成明确标注的 `AI 通用建议`，返回 `basis:general` 与空来源数组，不伪造依据。引用校验失败、超时或上游异常时返回回退文案。接口 kind 为 cup、move、breath 或 question。有依据不等于医学正确性保证。
 
 ## 已部署目录与升级
 
@@ -38,4 +38,4 @@ Nginx 必须覆盖 `X-Real-IP` 为 `$remote_addr`；服务只对本机反向代�
 
 管理地址：`https://yangling.entermodetwo.com/#admin`。管理令牌不要放入 GitHub、网页或 APK；网站普通界面没有管理入口。隐藏入口不代替鉴权，管理 API 仍需令牌。
 
-原始研究检索结果标记 `reviewed:false, kind:research`。它们用于展示实际资料，不自动用于个体动态卡片；动态生成依赖后台经内容负责人核对的知识条目。音频 URL 公开可播放，请勿上传私人录音。
+原始研究检索结果标记 `reviewed:false, kind:research`。它们用于展示实际资料，不自动作为个体动态卡片的依据；有来源的动态生成依赖后台已核对条目，无匹配时走上述通用建议路径。音频 URL 公开可播放，请勿上传私人录音。

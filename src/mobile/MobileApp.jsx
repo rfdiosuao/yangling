@@ -13,6 +13,7 @@ import KnowledgeScreen from './KnowledgeScreen.jsx'
 import MotionScreen from './MotionScreen.jsx'
 import ReminderSettings from './ReminderSettings.jsx'
 import AdminPanel from './AdminPanel.jsx'
+import LaunchCover from './LaunchCover.jsx'
 import './mobile.css'
 import './native-layout.css'
 import './experience.css'
@@ -62,5 +63,5 @@ export default function MobileApp(){
     {toast&&<div className="ylm-toast" role="status">{toast}</div>}
     {admin&&<AdminPanel config={config} onSave={next=>{setConfig(saveConfig(next));setToast('配置已发布到网站与 App。')}} onClose={()=>{setAdmin(false);history.replaceState(null,'','#'+tab)}}/>}
     {reminderOpen&&<Sheet title="养生提醒" onClose={()=>setReminderOpen(false)}><ReminderSettings reminder={reminder} alias={alias} mode={mode} permission={notificationPermission} onSave={updateReminder} onClose={()=>setReminderOpen(false)}/></Sheet>}
-  </div></div>
+  </div><LaunchCover/></div>
 }

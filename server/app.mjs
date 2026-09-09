@@ -134,7 +134,8 @@ export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR |
         const config = await load()
         const keywords = { cup: '饮水 茶 饮品', move: '运动 舒展 肩颈 八段锦', breath: '呼吸 放松 压力', question: '' }[kind]
         const matches = findKnowledgeMatches(`${question} ${keywords}`, config.knowledge.filter(x => x.reviewed && x.answer && x.enabled !== false), 3)
-        if (!matches.length) {
+        const canGenerate=config.generation.enabled&&config.llm.apiKey&&config.llm.baseUrl&&config.llm.model
+        if (!matches.length&&!canGenerate) {
           const research = kind === 'question' ? searchResearch(question) : []
           if (research.length) return json(res, 200, { lines: ['找到相关研究资料，可展开知识依据查看原文。'], sources: research, generated: false, reason: '研究资料原文，未作个体建议' })
           return json(res, 200, fallback(config, kind, 'no_sources'))
@@ -155,12 +156,21 @@ export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR |
           const context = matches.map((x, i) => `[${i + 1}] ${x.title}\n${x.answer}\n来源：${x.source}`).join('\n\n')
           const kindIntent = { cup: '为「一杯」卡片生成饮品或饮水建议', move: '为「一动」卡片生成轻缓活动建议', breath: '为「一息」卡片生成呼吸放松建议', question: '回答用户的知识问题' }[kind]
           const request = buildLlmRequest({ ...config.llm, systemPrompt: `${config.llm.systemPrompt}\n${config.generation.instructions}` }, `[任务类型: ${kind}] ${kindIntent}。\n用户输入：${question}`, context)
+          if(!matches.length){
+            const body=JSON.parse(request.options.body)
+            body.messages=[{role:'system',content:'你是养令日常健康陪伴助手。给出2至3条简短、温和、可执行的通用生活建议。当前没有检索依据，不得编造研究、来源、引用编号、诊断、药物剂量或疗效承诺。避免个体化医疗判断；不确定就说明。不需要每次复述免责声明。仅输出建议正文。'},{role:'user',content:`${kindIntent}。用户说：${question||'想做一点日常养生'}`}]
+            request.options.body=JSON.stringify(body)
+          }
           const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 10000)
           let response
           let payload
           try { response = await fetcher(request.url, { ...request.options, redirect: 'error', signal: controller.signal }); if (!response.ok) throw new Error('upstream failure'); payload = await readJsonBounded(response) } finally { clearTimeout(timer) }
           const text = String(payload?.choices?.[0]?.message?.content || '').slice(0, config.generation.maxLength)
           const lines = text.split(/\n+/).map(x => x.replace(/^\s*(?:[-•]|\d+[.、])\s*/, '').trim()).filter(Boolean).slice(0, 5)
+          if(!matches.length){
+            if(!lines.length||lines.some(line=>/\[\d+\]|https?:\/\/|doi:|治愈|保证.*疗效/i.test(line)))return json(res,200,fallback(config,kind,'invalid'))
+            return json(res,200,{lines,sources:[],generated:true,basis:'general',reason:'AI 通用建议'})
+          }
           if (!validateLines(lines, matches.length)) return json(res, 200, fallback(config, kind, 'invalid'))
           return json(res, 200, { lines, sources: sourcesFor(matches), generated: true, reason: '已使用审核知识生成' })
         } catch { return json(res, 200, fallback(config, kind, 'upstream')) } finally { upstreamActive-- }

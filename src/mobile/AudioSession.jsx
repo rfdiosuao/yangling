@@ -1,11 +1,13 @@
 import React,{useEffect,useRef,useState} from 'react'
 import {selectAudio} from './audio-library.js'
 import BrandIcon from './BrandIcons.jsx'
+import {stopSpeech} from './speech.js'
 
 export default function AudioSession({tracks=[],onComplete}) {
   const [track,setTrack]=useState(()=>selectAudio(tracks)),[history,setHistory]=useState([])
   const [running,setRunning]=useState(false),[seconds,setSeconds]=useState(0),[volume,setVolume]=useState(.5),[error,setError]=useState('')
   const player=useRef(null),done=useRef(false)
+  useEffect(()=>{const pause=()=>{player.current?.pause();setRunning(false)};window.addEventListener('yl:before-speech',pause);return()=>window.removeEventListener('yl:before-speech',pause)},[])
   useEffect(()=>{if(!track||!tracks.some(t=>t.id===track.id&&t.enabled!==false&&t.url===track.url)){player.current?.pause();setRunning(false);setTrack(selectAudio(tracks));setError('')}},[tracks])
   useEffect(()=>{if(player.current)player.current.volume=volume},[volume,track])
   useEffect(()=>{
@@ -19,6 +21,7 @@ export default function AudioSession({tracks=[],onComplete}) {
   },[seconds,volume])
   useEffect(()=>{const audio=player.current;if(audio&&track)audio.src=track.url;return ()=>{audio?.pause();audio?.removeAttribute('src');audio?.load()}},[track?.url])
   function toggle(){
+    stopSpeech()
     if(running){player.current?.pause();setRunning(false);return}
     if(seconds>=180){done.current=false;setSeconds(0);if(player.current){player.current.currentTime=0;player.current.volume=volume}}
     setRunning(true)

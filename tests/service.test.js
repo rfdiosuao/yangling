@@ -22,6 +22,13 @@ afterEach(async () => {
 })
 
 describe('YangLing service', () => {
+  it('answers without matching knowledge as explicitly uncited general advice', async () => {
+    const {base}=await start({resolveHost:async()=>['93.184.216.34'],fetcher:async()=>new Response(JSON.stringify({choices:[{message:{content:'先放松肩膀，在舒适范围内慢慢活动。'}}]}))})
+    await fetch(`${base}/admin/config`,{method:'PUT',headers:auth,body:JSON.stringify({llm:{apiKey:'key',baseUrl:'https://example.org/v1',model:'m'},generation:{enabled:true},knowledge:[]})})
+    const answer=await(await fetch(`${base}/generate`,{method:'POST',headers:auth,body:JSON.stringify({kind:'move',question:'想活动一下'})})).json()
+    expect(answer).toMatchObject({generated:true,basis:'general',sources:[],reason:'AI 通用建议'})
+    expect(answer.lines[0]).toContain('肩膀')
+  })
   it('serves health and sanitized public config while protecting admin mutations', async () => {
     const { base } = await start()
     expect((await fetch(`${base}/health`)).status).toBe(200)

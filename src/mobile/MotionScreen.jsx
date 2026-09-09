@@ -4,10 +4,28 @@ import {EXERCISES,scorePose} from './model.js'
 import {validateVideoUrl} from './config.js'
 import {Sheet} from './controls.jsx'
 import BrandIcon from './BrandIcons.jsx'
+import {speak,stopSpeech} from './speech.js'
+import {createVoiceCoach} from './voice-coach.js'
 export default function MotionScreen({mode,courses,notify,onComplete}){
   const options=courses.filter(c=>c.enabled)
   const [chosen,setChosen]=useState(null),[guide,setGuide]=useState(false),[camera,setCamera]=useState('off'),[result,setResult]=useState(null),[detail,setDetail]=useState(false)
   const video=useRef(null),canvas=useRef(null),stream=useRef(null),frame=useRef(null),generation=useRef(0)
+  const [voiceEnabled,setVoiceEnabled]=useState(true)
+  const coach=useRef(createVoiceCoach()),voiceBusy=useRef(false)
+  const latestResult=useRef(result)
+  latestResult.current=result
+  useEffect(()=>{
+    if(camera!=='live'||!voiceEnabled)return
+    const timer=setInterval(()=>{
+      if(voiceBusy.current)return
+      const message=coach.current(latestResult.current,performance.now())
+      if(!message)return
+      voiceBusy.current=true;speak(message).catch(()=>{setVoiceEnabled(false);notify('语音暂不可用，请检查手机中文语音引擎。')}).finally(()=>{voiceBusy.current=false})
+    },500)
+    return()=>clearInterval(timer)
+  },[camera,voiceEnabled])
+  useEffect(()=>{if(camera!=='live'||!voiceEnabled){coach.current=createVoiceCoach();stopSpeech()}},[camera,voiceEnabled])
+  useEffect(()=>()=>{stopSpeech()},[])
   const course=options.find(c=>c.id===chosen)||options[0]
   const index=EXERCISES.findIndex(e=>e.name===course?.moveName),exercise=EXERCISES[index]
   function stop(){generation.current++;cancelAnimationFrame(frame.current);stream.current?.getTracks().forEach(t=>t.stop());stream.current=null;setCamera('off');setResult(null)}
@@ -41,6 +59,7 @@ export default function MotionScreen({mode,courses,notify,onComplete}){
     {mode==='parent'?<button className="yl-back" onClick={()=>{stop();setChosen(null)}}>重新选动作</button>:<label className="yl-course-select">练习动作<select value={course?.id||''} onChange={e=>{stop();setChosen(e.target.value)}}>{options.map(c=><option key={c.id} value={c.id}>{c.name} · {c.moveName}</option>)}</select></label>}
     <div className={`ylm-camera-view ${camera!=='off'?'camera-on':''}`}><div className="ylm-demo-photo" role="img" aria-label="双手托天参考姿势"/><video ref={video} muted playsInline aria-label="本机摄像头实时画面"/><canvas ref={canvas} aria-hidden="true"/><span className="ylm-camera-badge">{camera==='off'?'参考姿势 · 非实时画面':camera==='loading'?'正在准备…':'摄像头已开启'}</span></div>
     <div className="yl-motion-feedback" role="status">{camera==='off'?'准备好了，就开始跟练':result?.hint||'请让全身进入画面'}</div>
+    <button className="yl-detail-button" aria-pressed={voiceEnabled} onClick={()=>setVoiceEnabled(v=>!v)}>{voiceEnabled?'语音指导已开启':'语音指导已关闭'}</button>
     <div className="yl-motion-buttons"><button className="ylm-secondary" onClick={()=>{stop();setGuide(true)}}><Play size={20}/>先看示范</button><button className="ylm-primary" disabled={!exercise} onClick={start}>{camera==='off'?<Camera size={20}/>:<CameraSlash size={20}/>} {camera==='off'?'开始跟练':camera==='loading'?'取消准备':'暂停跟练'}</button></div>
     <button className="yl-detail-button" onClick={()=>setDetail(true)}>查看动作细项{result?` · ${result.score} 分`:''}<CaretRight size={16}/></button>
     {camera==='live'&&<p className="ylm-camera-privacy"><LockSimple size={13}/>画面在本机处理，不上传保存。</p>}
