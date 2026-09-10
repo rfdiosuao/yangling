@@ -8,6 +8,7 @@ import { normalizeConfig, DEFAULT_CONFIG, findKnowledgeMatches } from '../src/mo
 import { buildLlmRequest } from '../src/mobile/llm.js'
 import { makeAnswer, makePlan } from '../src/mobile/model.js'
 import { researchStats, searchResearch } from './research.mjs'
+import { createFamilyStore } from './family.mjs'
 
 const MAX_JSON = 256 * 1024
 const MAX_AUDIO = 20 * 1024 * 1024
@@ -71,6 +72,7 @@ function clientAddress(req) {
 }
 
 export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR || join(process.cwd(), 'data'), adminToken = process.env.YANGLING_ADMIN_TOKEN || '', fetcher = fetch, resolveHost = async host => (await lookup(host, { all: true })).map(x => x.address) } = {}) {
+  const family = createFamilyStore(dataDir)
   const configPath = join(dataDir, 'config.json'), audioDir = join(dataDir, 'audio')
   let upstreamActive = 0
   const requestTimes = new Map()
@@ -91,6 +93,13 @@ export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR |
       if (req.method === 'OPTIONS') return res.writeHead(origin && res.getHeader('Access-Control-Allow-Origin') ? 204 : 403).end()
       if (!url.pathname.startsWith('/api/')) return json(res, 404, { error: 'not found' })
       if (req.method === 'GET' && url.pathname === '/api/health') return json(res, 200, { ok: true })
+      if (req.method === 'POST' && url.pathname.startsWith('/api/family/')) {
+        res.setHeader('Cache-Control','no-store')
+        const input=JSON.parse((await body(req,4096)).toString('utf8'))
+        if(!input||typeof input!=='object'||Array.isArray(input))return json(res,400,{error:'invalid input'})
+        try { return json(res,200,await family(url.pathname.slice('/api/family/'.length),String(req.headers.authorization||'').replace(/^Bearer\s+/i,''),input,clientAddress(req))) }
+        catch(error){return json(res,error.status||500,{error:error.status?error.message:'家庭服务暂不可用，请稍后重试'})}
+      }
       if (req.method === 'GET' && url.pathname === '/api/config') { res.setHeader('Cache-Control', 'no-store'); return json(res, 200, safeConfig(await load())) }
       if (req.method === 'GET' && url.pathname === '/api/research') {
         const question = String(url.searchParams.get('q') || '').slice(0, 1000)

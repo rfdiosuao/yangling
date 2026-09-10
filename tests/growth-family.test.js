@@ -1,0 +1,13 @@
+import {describe,it,expect} from 'vitest'
+import {mkdtemp,rm} from 'node:fs/promises'
+import {tmpdir} from 'node:os'
+import {join} from 'node:path'
+import {recordGrowth,growthStats,readGrowth,normalizeHistory} from '../src/mobile/growth.js'
+import {createFamilyStore} from '../server/family.mjs'
+describe('growth',()=>{
+ it('migrates and deduplicates without inventing dates',()=>{const store={getItem:key=>key.includes('pet-completed')?JSON.stringify({date:'2026-09-10',items:['cup','cup','bad']}):null};const history=readGrowth(store);expect(history.days['2026-09-10']).toEqual(['cup']);expect(recordGrowth(history,'cup','2026-09-10')).toEqual(history);expect(normalizeHistory({days:{'2026-02-30':['cup'],oops:['move']}}).days).toEqual({})})
+ it('unlocks by cumulative days and never downgrades after a break',()=>{let h={};for(let i=1;i<=30;i++)h=recordGrowth(h,'cup',`2026-08-${String(i).padStart(2,'0')}`);expect(growthStats(h,'2026-08-30')).toMatchObject({total:30,streak:30,full:0,stage:{days:30}});expect(growthStats(h,'2026-09-10')).toMatchObject({streak:0,stage:{days:30}});for(const n of [7,14]){const days=Object.fromEntries(Object.entries(h.days).slice(0,n));expect(growthStats({days},'2026-09-10').stage.days).toBe(n)}})
+})
+describe('family',()=>{
+ it('requires both parties, persists, deduplicates and revokes access',async()=>{const dir=await mkdtemp(join(tmpdir(),'yl-family-'));try{let store=createFamilyStore(dir);const a=(await store('register','',{name:'A'},'a')).token,b=(await store('register','',{name:'B'},'b')).token,c=(await store('register','',{name:'C'},'c')).token;await expect(store('state','bad')).rejects.toMatchObject({status:401});const {code}=await store('invite',a);await store('join',b,{code});let link=(await store('state',a)).links[0];expect(link.status).toBe('pending');await expect(store('message',b,{link:link.id,text:'hello',id:'test-message-1'})).rejects.toMatchObject({status:403});await expect(store('confirm',b,{link:link.id})).rejects.toMatchObject({status:403});await store('confirm',a,{link:link.id});await store('message',b,{link:link.id,text:'hello',id:'test-message-1'});await store('message',b,{link:link.id,text:'hello',id:'test-message-1'});await expect(store('read',c,{link:link.id})).rejects.toMatchObject({status:404});store=createFamilyStore(dir);expect((await store('state',a)).links[0].messages).toHaveLength(1);await store('read',a,{link:link.id});expect((await store('state',b)).links[0].messages[0].read).toBe(true);await store('remove',b,{link:link.id});expect((await store('state',a)).links).toHaveLength(0);await expect(store('message',a,{link:link.id,text:'hello',id:'test-message-2'})).rejects.toMatchObject({status:404})}finally{await rm(dir,{recursive:true,force:true})}})
+})

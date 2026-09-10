@@ -5,7 +5,7 @@ import {speakPet,stopSpeech} from './speech.js'
 import './pet.css'
 
 const images={idle:'yangling-companion-v1.png',happy:'yangling-happy-v1.png',rest:'yangling-rest-v1.png'}
-export default function PetCompanion({completed,hidden=false}){
+export default function PetCompanion({completed,stage,hidden=false}){
  const host=useRef(null),drag=useRef(null),lastClick=useRef(-Infinity),reset=useRef(null),suppressClick=useRef(false)
  const [position,setPosition]=useState({x:0,y:0}),[bounds,setBounds]=useState({x:0,y:0}),[ready,setReady]=useState(false)
  const [minimized,setMinimized]=useState(false),[pose,setPose]=useState('idle'),[message,setMessage]=useState(''),[blocked,setBlocked]=useState(false)
@@ -41,7 +41,7 @@ export default function PetCompanion({completed,hidden=false}){
   <div className={`yl-pet ${minimized?'minimized':''} ${pose}`} style={{left:position.x,top:position.y}}>
    {!minimized&&message&&<div className={`yl-pet-bubble ${position.x<150?'bubble-right':''}`} style={position.y<140?{top:120,bottom:'auto'}:undefined} role="status">{message}<small>今天已完成 {completed.length}/3 项</small></div>}
    <button className="yl-pet-body" aria-label={minimized?'展开小芽':'小芽，点击互动，拖动可移动'} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={()=>{drag.current=null;suppressClick.current=true}} onKeyDown={keys} onClick={()=>{if(suppressClick.current){suppressClick.current=false;return}minimized?setMinimized(false):hello()}}>
-    <img src={`${import.meta.env.BASE_URL}pet/${images[pose]}`} alt="小芽" draggable="false"/>
+    <img src={`${import.meta.env.BASE_URL}pet/${pose==='idle'&&stage?stage.image:images[pose]}`} alt={stage?`小芽 · ${stage.name}`:'小芽'} draggable="false"/>
    </button>
    {!minimized&&<button className="yl-pet-minimize" aria-label="收起小芽" onClick={()=>{setMinimized(true);setMessage('');stopSpeech()}}><Minus size={16}/></button>}
   </div>

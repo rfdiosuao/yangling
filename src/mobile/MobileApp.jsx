@@ -15,6 +15,9 @@ import ReminderSettings from './ReminderSettings.jsx'
 import AdminPanel from './AdminPanel.jsx'
 import LaunchCover from './LaunchCover.jsx'
 import PetCompanion from './PetCompanion.jsx'
+import GrowthPanel from './GrowthPanel.jsx'
+import {readGrowth,recordGrowth,growthStats,GROWTH_KEY} from './growth.js'
+import {syncFamily} from './FamilyPanel.jsx'
 import {loadCompletion,recordCompletion,localDate} from './companion.js'
 import {speakPet,stopSpeech} from './speech.js'
 import './mobile.css'
@@ -26,6 +29,9 @@ export default function MobileApp(){
   const [tab,setTab]=useState(initial.tab),[admin,setAdmin]=useState(initial.admin),[mode,setMode]=useState(()=>localStorage.getItem('yangling:mode')||'child')
   const [config,setConfig]=useState(loadConfig),[toast,setToast]=useState(''),[completed,setCompleted]=useState(()=>loadCompletion().items),[reminderOpen,setReminderOpen]=useState(false),[reminder,setReminder]=useState(loadReminder),[alias,setAlias]=useState(loadAlias),[ritual,setRitual]=useState(null)
   const daily=useRef(loadCompletion()),[reward,setReward]=useState(null)
+  const [growth,setGrowth]=useState(readGrowth),[growthOpen,setGrowthOpen]=useState(false)
+  const stats=growthStats(growth)
+  useEffect(()=>{const refresh=()=>{if(document.visibilityState==='visible')syncFamily().catch(()=>{})};refresh();document.addEventListener('visibilitychange',refresh);return()=>document.removeEventListener('visibilitychange',refresh)},[])
   useEffect(()=>{if(!reward)return;const timer=setTimeout(()=>speakPet(reward.id).catch(()=>{}),0);return()=>clearTimeout(timer)},[reward])
   useEffect(()=>{const refresh=()=>{if(daily.current.date!==localDate()){daily.current=loadCompletion();setCompleted(daily.current.items)}};const timer=setInterval(refresh,30000);window.addEventListener('focus',refresh);return()=>{clearInterval(timer);window.removeEventListener('focus',refresh)}},[])
   const [notificationPermission,setNotificationPermission]=useState(null)
@@ -59,14 +65,15 @@ export default function MobileApp(){
     setAlias(saveAlias(name));setReminder(saveReminder(next))
   }
   function dialect(value){localStorage.setItem('yangling:dialect',value);setConfig(c=>({...c,dialect:value}))}
-  const complete=type=>{const next=recordCompletion(daily.current,type);daily.current=next.record;setCompleted(next.record.items);try{localStorage.setItem('yangling:pet-completed',JSON.stringify(next.record))}catch{}if(next.cue)setReward({id:next.cue,time:Date.now()})}
+  const complete=type=>{const next=recordCompletion(daily.current,type),old=readGrowth(),history=recordGrowth(old,type);try{localStorage.setItem(GROWTH_KEY,JSON.stringify(history))}catch{setToast('本机空间不足，打卡未保存，请清理空间后重试。');return}daily.current=next.record;setCompleted(next.record.items);setGrowth(history);try{localStorage.setItem('yangling:pet-completed',JSON.stringify(next.record))}catch{}if(growthStats(history).stage.days>growthStats(old).stage.days)setToast(`小芽长大啦！已解锁${growthStats(history).stage.name}。`);if(next.cue)setReward({id:next.cue,time:Date.now()});syncFamily().catch(()=>{})}
   return <div className="ylm-stage"><div className={`ylm-app ${mode==='parent'?'parent-mode':''}`} data-testid="mobile-app"><div className="ylm-scroll">
     <header className="ylm-header"><button className="ylm-brand" aria-label="养令首页" onClick={()=>navigate('home')}><BrandIcon name="brand" className="yl-brand-mark" size={39}/><span className="ylm-brand-copy"><b>养令</b><small>YangLing</small></span></button><div className="ylm-header-tools"><div className="ylm-mode" role="group" aria-label="使用模式">{['child','parent'].map(m=><button key={m} aria-pressed={mode===m} className={mode===m?'active':''} onClick={()=>{setMode(m);localStorage.setItem('yangling:mode',m)}}>{m==='child'?'儿女版':'家长版'}</button>)}</div><button className="ylm-reminder-trigger" aria-label="养生提醒设置" onClick={()=>setReminderOpen(true)}><Bell size={21} weight={reminder.enabled?'fill':'regular'}/></button></div></header>
-    {tab==='home'&&<HomeScreen config={config} mode={mode} notify={setToast} completed={completed} onComplete={complete} onMove={()=>navigate('motion')} initialRitual={ritual}/>}
+    {tab==='home'&&<><button className="yl-growth-entry" onClick={()=>setGrowthOpen(true)}>{stats.stage.name} · 已陪伴 {stats.total} 天 · 今日 {completed.length}/3　查看成长与家人 ›</button><HomeScreen config={config} mode={mode} notify={setToast} completed={completed} onComplete={complete} onMove={()=>navigate('motion')} initialRitual={ritual}/></>}
     {tab==='knowledge'&&<KnowledgeScreen config={config} mode={mode} notify={setToast} onDialect={dialect}/>}
     {tab==='motion'&&<MotionScreen courses={config.courses} mode={mode} notify={setToast} onComplete={complete}/>}
     </div><nav className="ylm-bottom-nav" aria-label="主导航">{[['home','轻养生','养生'],['knowledge','问答知识库','问一问'],['motion','动作识别','跟着练']].map(([key,label,parent])=><button key={key} aria-current={tab===key?'page':undefined} className={tab===key?'active':''} onClick={()=>navigate(key)}><BrandIcon name={key} size={27}/><span>{mode==='parent'?parent:label}</span></button>)}</nav>
-    <PetCompanion completed={completed} hidden={admin||reminderOpen}/>
+    <PetCompanion completed={completed} stage={stats.stage} hidden={admin||reminderOpen||growthOpen}/>
+    {growthOpen&&<Sheet title="小芽与家人" onClose={()=>setGrowthOpen(false)}><GrowthPanel history={growth}/></Sheet>}
     {toast&&<div className="ylm-toast" role="status">{toast}</div>}
     {admin&&<AdminPanel config={config} onSave={next=>{setConfig(saveConfig(next));setToast('配置已发布到网站与 App。')}} onClose={()=>{setAdmin(false);history.replaceState(null,'','#'+tab)}}/>}
     {reminderOpen&&<Sheet title="养生提醒" onClose={()=>setReminderOpen(false)}><ReminderSettings reminder={reminder} alias={alias} mode={mode} permission={notificationPermission} onSave={updateReminder} onClose={()=>setReminderOpen(false)}/></Sheet>}
