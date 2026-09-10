@@ -28,6 +28,8 @@
 APK：`yangling-v1.5.0-debug.apk`。
 SHA256：`9b238ef9bcbb41dac6af83cabe25aca6968765042d11d22e5391816a277de0f8`。
 
+发布完成：网站 `https://yangling.entermodetwo.com`；下载 `/downloads/yangling-v1.5.0-debug.apk`。服务发布目录 `/opt/yangling/releases/20260910-220646`，网页回滚备份 `/var/backups/yangling/20260910-220648`。远端 APK SHA256 与本机一致。
+
 ## 生成素材记录
 
 使用内置 imagegen，参考 `public/pet/yangling-companion-v1.png`。
