@@ -51,7 +51,16 @@ export const DEFAULT_CONFIG = {
     { id: 'bow', name: '八段锦', moveName: '左右开弓', videoUrl: '', enabled: true },
     { id: 'neck', name: '肩颈操', moveName: '肩颈舒展', videoUrl: '', enabled: true },
   ],
-  audio: [],
+  audio: [
+    { id: 'meditation-01', name: 'An Ambient Day（陪伴的一天）', url: 'audio/meditation/ambient-day.mp3', enabled: true },
+    { id: 'meditation-02', name: 'The Quiet Morning（安静的早晨）', url: 'audio/meditation/quiet-morning.mp3', enabled: true },
+    { id: 'meditation-03', name: 'Deep Meditation（深度冥想）', url: 'audio/meditation/deep-meditation.mp3', enabled: true },
+    { id: 'meditation-04', name: 'Healing Water（疗愈之水）', url: 'audio/meditation/healing-water.mp3', enabled: true },
+    { id: 'meditation-05', name: 'In The Light（光之中）', url: 'audio/meditation/in-the-light.mp3', enabled: true },
+    { id: 'meditation-06', name: 'Cathedral Ambience（教堂氛围）', url: 'audio/meditation/cathedral-ambience.mp3', enabled: true },
+    { id: 'meditation-07', name: 'Serenity（宁静）', url: 'audio/meditation/serenity.mp3', enabled: true },
+    { id: 'meditation-08', name: "Galaxy's Endless Expanse（无尽银河）", url: 'audio/meditation/galaxy-expanse.mp3', enabled: true },
+  ],
   generation: { enabled: false, instructions: '', maxLength: 300, fallback: { cup: '暂时没有已审核的饮品建议。', move: '请在舒适范围内轻缓活动。', breath: '放松肩膀，跟随自己的节奏呼吸。', question: '暂时没有匹配的已审核知识。' } },
 }
 

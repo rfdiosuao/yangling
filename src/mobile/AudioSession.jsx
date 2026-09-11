@@ -6,7 +6,7 @@ import {stopSpeech} from './speech.js'
 export default function AudioSession({tracks=[],onComplete}) {
   const [track,setTrack]=useState(()=>selectAudio(tracks)),[history,setHistory]=useState([])
   const [running,setRunning]=useState(false),[seconds,setSeconds]=useState(0),[volume,setVolume]=useState(.5),[error,setError]=useState('')
-  const player=useRef(null),done=useRef(false)
+  const player=useRef(null),done=useRef(false),attempt=useRef(0)
   useEffect(()=>{const pause=()=>{player.current?.pause();setRunning(false)};window.addEventListener('yl:before-speech',pause);return()=>window.removeEventListener('yl:before-speech',pause)},[])
   useEffect(()=>{if(!track||!tracks.some(t=>t.id===track.id&&t.enabled!==false&&t.url===track.url)){player.current?.pause();setRunning(false);setTrack(selectAudio(tracks));setError('')}},[tracks])
   useEffect(()=>{if(player.current)player.current.volume=volume},[volume,track])
@@ -19,16 +19,21 @@ export default function AudioSession({tracks=[],onComplete}) {
     if(seconds>=175&&player.current)player.current.volume=volume*Math.max(0,(180-seconds)/5)
     if(seconds>=180){setRunning(false);player.current?.pause();if(!done.current){done.current=true;onComplete()}}
   },[seconds,volume])
-  useEffect(()=>{const audio=player.current;if(audio&&track)audio.src=track.url;return ()=>{audio?.pause();audio?.removeAttribute('src');audio?.load()}},[track?.url])
+  function playMusic(){
+    const audio=player.current,id=++attempt.current
+    if(!audio)return
+    setError('');audio.play().catch(e=>{if(id!==attempt.current)return;setRunning(false);setError(e.name==='NotAllowedError'?'浏览器需要你点一下「开始三分钟」才能播放音乐。':'音乐暂时无法播放，请换一段或稍后重试。')})
+  }
+  useEffect(()=>{const audio=player.current;if(audio&&track){audio.src=track.url;playMusic()}return ()=>{attempt.current++;audio?.pause();audio?.removeAttribute('src');audio?.load()}},[track?.url])
   function toggle(){
     stopSpeech()
-    if(running){player.current?.pause();setRunning(false);return}
+    if(running){attempt.current++;player.current?.pause();setRunning(false);return}
     if(seconds>=180){done.current=false;setSeconds(0);if(player.current){player.current.currentTime=0;player.current.volume=volume}}
-    setRunning(true)
-    if(track)player.current?.play().catch(()=>setError('音乐暂时无法播放，可换一段或无音乐继续。'))
+    if(track)playMusic();else setRunning(true)
   }
   function change(){
-    player.current?.pause();setRunning(false);setError('')
+    attempt.current++;player.current?.pause();setRunning(false);setError('')
+    if(seconds>=180){done.current=false;setSeconds(0)}
     const seen=[...history,track?.id].filter(Boolean),next=selectAudio(tracks,seen)
     setHistory(tracks.filter(t=>t.enabled!==false&&t.url).every(t=>seen.includes(t.id))?[track?.id]:seen)
     setTrack(next)
@@ -38,7 +43,7 @@ export default function AudioSession({tracks=[],onComplete}) {
     <h3>{seconds>=180?'这一刻，留给自己':running?(seconds%10<4?'轻轻吸气':'慢慢呼气'):'跟着自己的节奏'}</h3>
     <p className="yl-timer">{Math.floor((180-seconds)/60)}:{String((180-seconds)%60).padStart(2,'0')}</p>
     <div className="yl-audio-track"><span>{track?.name||'无音乐 · 自然呼吸'}</span><button onClick={change} disabled={tracks.filter(t=>t.enabled!==false&&t.url).length<2}>换一段</button></div>
-    {track&&<audio ref={player} src={track.url} preload="metadata" onError={()=>setError('这段音频暂时无法播放，可换一段或继续呼吸。')}/>}
+    {track&&<audio ref={player} src={track.url} preload="auto" loop onPlaying={()=>{setRunning(true);setError('')}} onPause={()=>setRunning(false)} onWaiting={()=>setRunning(false)} onError={()=>{setRunning(false);setError('这段音频暂时无法播放，请换一段或检查网络。')}}/>}
     {track&&<label className="yl-volume">音量<input aria-label="音乐音量" type="range" min="0" max="1" step="0.05" value={volume} onChange={e=>setVolume(Number(e.target.value))}/></label>}
     {error&&<p role="status">{error}</p>}
     <button className="ylm-primary" onClick={toggle}>{running?'暂停一下':seconds>=180?'再放松三分钟':seconds?'继续放松':'开始三分钟'}</button>

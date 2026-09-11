@@ -57,7 +57,7 @@ export default function AdminPanel({ config, onSave, onClose }) {
   function setAudio(index,key,value){setDraft(current=>({...current,audio:current.audio.map((item,i)=>i===index?{...item,[key]:value}:item)}))}
   async function upload(event,index){const input=event.target,file=input.files?.[0],id=draft.audio[index]?.id;if(!file||!id)return;setBusy(true);setError('');try{const item=await uploadAudio(file,token);setDraft(c=>({...c,audio:c.audio.map(a=>a.id===id?{...a,url:item.url,name:file.name.replace(/\.[^.]+$/,'')}:a)}))}catch(e){setError(e.message||'音频上传失败。')}finally{setBusy(false);input.value=''}}
   async function save() {
-    if(draft.audio.some(item=>item.enabled&&(!item.name.trim()||!(/^(https:\/\/|\/api\/audio\/)/.test(item.url))))){setError('启用的音频需要名称和 HTTPS 音频链接，或先上传文件。');setSection('audio');return}
+    if(draft.audio.some(item=>item.enabled&&(!item.name.trim()||!(/^(https:\/\/|\/api\/audio\/|audio\/)/.test(item.url))))){setError('启用的音频需要名称和 HTTPS 音频链接、静态音频路径，或先上传文件。');setSection('audio');return}
     const invalid = draft.courses.find(item => item.videoUrl && !validateVideoUrl(item.videoUrl))
     if (invalid) { setError(`“${invalid.moveName || invalid.name}”需要填写 http 或 https 视频链接。`); setSection('courses'); return }
     if (!draft.llm.provider.trim() || !draft.llm.model.trim()) { setError('LLM 服务商和模型名称需要填写。'); setSection('llm'); return }
