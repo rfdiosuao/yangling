@@ -16,7 +16,7 @@ export default function KnowledgeScreen({config,mode,notify,onDialect}){
     const id=++sequence.current;setQuestion(q);setInput('');setFeedback(null);setPending(true)
     const risk=makeAnswer(q)
     if(risk.urgent){setAnswer(risk);setPending(false);return}
-    try{const result=await generateKnowledge('question',q);if(id===sequence.current)setAnswer({...result,title:result.generated?(result.basis==='general'?'AI 通用建议':'根据知识库，可以这样做'):result.sources.length?'知识库原文参考':'暂时没有足够依据'})}
+    try{const result=await generateKnowledge('question',q);if(id===sequence.current)setAnswer({...result,title:result.generated?(result.basis==='medical-search'?'百川医疗检索 · AI 整理':result.basis==='general'?'AI 通用建议':'根据知识库，可以这样做'):result.sources.length?'知识库原文参考':'暂时没有足够依据'})}
     catch{if(id===sequence.current){const matches=findKnowledgeMatches(q,config.knowledge).filter(s=>s.reviewed===true);setAnswer({title:matches.length?'知识库原文参考':'暂时没有足够依据',lines:matches.length?matches.map(s=>s.answer):['暂时无法查到相关知识，可以换个说法或稍后重试。'],sources:matches.map(s=>({title:s.source||s.title,body:s.answer}))});notify('服务暂未连接，未生成新回答。')}}
     finally{if(id===sequence.current)setPending(false)}
   }

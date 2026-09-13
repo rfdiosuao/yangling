@@ -9,6 +9,7 @@ import { buildLlmRequest } from '../src/mobile/llm.js'
 import { makeAnswer, makePlan } from '../src/mobile/model.js'
 import { researchStats, searchResearch } from './research.mjs'
 import { createFamilyStore } from './family.mjs'
+import { medicalRequest, parseMedicalAnswer } from './baichuan.mjs'
 
 const MAX_JSON = 256 * 1024
 const MAX_AUDIO = 20 * 1024 * 1024
@@ -71,7 +72,7 @@ function clientAddress(req) {
   return isLoopback(req.socket.remoteAddress) && isIP(proxyAddress) ? proxyAddress : req.socket.remoteAddress || 'unknown'
 }
 
-export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR || join(process.cwd(), 'data'), adminToken = process.env.YANGLING_ADMIN_TOKEN || '', fetcher = fetch, resolveHost = async host => (await lookup(host, { all: true })).map(x => x.address) } = {}) {
+export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR || join(process.cwd(), 'data'), adminToken = process.env.YANGLING_ADMIN_TOKEN || '', medicalApiKey = process.env.BAICHUAN_MEDICAL_API_KEY || '', fetcher = fetch, resolveHost = async host => (await lookup(host, { all: true })).map(x => x.address) } = {}) {
   const family = createFamilyStore(dataDir)
   const configPath = join(dataDir, 'config.json'), audioDir = join(dataDir, 'audio')
   let upstreamActive = 0
@@ -141,6 +142,22 @@ export function createYanglingServer({ dataDir = process.env.YANGLING_DATA_DIR |
         const plan = makePlan(question), answer = makeAnswer(question)
         if (plan.urgent || answer.urgent) return json(res, 200, { lines: [plan.message || answer.lines[0]], sources: [], generated: false, reason: '安全提示优先' })
         const config = await load()
+        // Opt-in keeps older APKs with a 12-second timeout on their existing route.
+        if (kind === 'question' && input.medicalSearch === true && medicalApiKey && config.generation.enabled) {
+          const client = clientAddress(req), now = Date.now()
+          for (const [address, times] of requestTimes) { const live = times.filter(t => now - t < 60000); if (live.length) requestTimes.set(address, live); else requestTimes.delete(address) }
+          const recent = requestTimes.get(client) || []
+          if (recent.length >= 12 || upstreamActive >= 3) return json(res, 200, fallback(config, kind, 'upstream'))
+          recent.push(now); requestTimes.set(client, recent); upstreamActive++
+          const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 50000)
+          try {
+            const response = await fetcher('https://api.baichuan-ai.com/v1/chat/completions', { ...medicalRequest(medicalApiKey, question), redirect: 'error', signal: controller.signal })
+            if (!response.ok) throw new Error('Medical upstream unavailable')
+            return json(res, 200, parseMedicalAnswer(await readJsonBounded(response)))
+          } catch {
+            return json(res, 200, { lines: ['百川医疗检索暂不可用，请稍后重试。未生成检索回答。'], sources: [], generated: false, reason: '百川医疗检索暂不可用，请稍后重试' })
+          } finally { clearTimeout(timer); upstreamActive-- }
+        }
         const keywords = { cup: '饮水 茶 饮品', move: '运动 舒展 肩颈 八段锦', breath: '呼吸 放松 压力', question: '' }[kind]
         const matches = findKnowledgeMatches(`${question} ${keywords}`, config.knowledge.filter(x => x.reviewed && x.answer && x.enabled !== false), 3)
         const canGenerate=config.generation.enabled&&config.llm.apiKey&&config.llm.baseUrl&&config.llm.model

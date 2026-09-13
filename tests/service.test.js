@@ -22,6 +22,21 @@ afterEach(async () => {
 })
 
 describe('YangLing service', () => {
+  it('routes opted-in medical questions to Baichuan without exposing credentials', async () => {
+    const calls=[]
+    const {base}=await start({medicalApiKey:'medical-secret',fetcher:async(url,options)=>{calls.push({url,body:JSON.parse(options.body)});return new Response(JSON.stringify({choices:[{finish_reason:'stop',message:{content:'按需饮水。^[3]^'},grounding:{evidence:[{ref_num:3,title:'Hydration',url:'https://pubmed.ncbi.nlm.nih.gov/123/'}]}}]}))}})
+    await fetch(`${base}/admin/config`,{method:'PUT',headers:auth,body:JSON.stringify({generation:{enabled:true}})})
+    const result=await(await fetch(`${base}/generate`,{method:'POST',headers:auth,body:JSON.stringify({kind:'question',question:'日常喝水',medicalSearch:true})})).json()
+    expect(result).toMatchObject({generated:true,basis:'medical-search',lines:['按需饮水。[1]']})
+    expect(calls[0]).toMatchObject({url:'https://api.baichuan-ai.com/v1/chat/completions',body:{model:'Baichuan-M3-Plus'}})
+    expect(JSON.stringify(result)).not.toContain('medical-secret')
+  })
+  it('medical failure returns an explicit failure without pretending to retrieve', async () => {
+    const {base}=await start({medicalApiKey:'medical-secret',fetcher:async()=>new Response('{}',{status:401})})
+    await fetch(`${base}/admin/config`,{method:'PUT',headers:auth,body:JSON.stringify({generation:{enabled:true}})})
+    const result=await(await fetch(`${base}/generate`,{method:'POST',headers:auth,body:JSON.stringify({kind:'question',question:'日常喝水',medicalSearch:true})})).json()
+    expect(result).toMatchObject({generated:false,sources:[],reason:'百川医疗检索暂不可用，请稍后重试'})
+  })
   it('answers without matching knowledge as explicitly uncited general advice', async () => {
     const {base}=await start({resolveHost:async()=>['93.184.216.34'],fetcher:async()=>new Response(JSON.stringify({choices:[{message:{content:'先放松肩膀，在舒适范围内慢慢活动。'}}]}))})
     await fetch(`${base}/admin/config`,{method:'PUT',headers:auth,body:JSON.stringify({llm:{apiKey:'key',baseUrl:'https://example.org/v1',model:'m'},generation:{enabled:true},knowledge:[]})})

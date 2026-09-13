@@ -47,5 +47,5 @@ export async function uploadAudio(file, token) {
   return { ...result, url: result.url?.startsWith('/api/audio/') ? apiUrl(result.url) : result.url }
 }
 export async function generateKnowledge(kind, question) {
-  return request('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, question }) })
+  return request('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, question, medicalSearch: kind === 'question' }) }, kind === 'question' ? 60000 : 12000)
 }
